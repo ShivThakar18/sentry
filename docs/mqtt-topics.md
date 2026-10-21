@@ -10,7 +10,7 @@
 - In A, subscribe to test/hello.
 - In B, publish hi to test/hello.
 - Then publish to Test/hello and to test/hello/ (with a trailing slash).
-**Predictions:** do those last two arrive? What does that tell you about how strictly topics are matched?
+**Predictions:** Do those last two arrive? What does that tell you about how strictly topics are matched?
   - The last 2 do not arrive. This shows the path to publish must match exactly to what the subscribe path is. Otherwise the no message will be seen on the subscribed localhost. 
 
 ## Experiment 2: Wildcards
@@ -42,19 +42,27 @@
   
 Questions:
 1. What’s the difference between + and #?
-   - The + acts as a placeholder or variable. This means that when publishing messages any string or path in that place can be sent and read. Though this is more strict and only allows the + wildcard to be replaced with any other string. As seen in experiments above, only the first message was published because the "lamp" was able to fit into place. The third message also shows that you cannot add more directories or paths to replace the +.
+   - The + acts as a placeholder or variable. This means that when publishing messages any topic in that place can be sent and read. Though this is more strict and only allows the + wildcard to be replaced with any other string. As seen in experiments above, only the first message was published because the "lamp" was able to fit into place. The third message also shows that you cannot add more topics to replace the +.
    - The # acts as "anything goes". Although it cannot be used in place of a + it can only be used at the end of a given path such as home/# 
-3. Why does a leading / cause trouble?
-   - As it was seen in experiment 1. The subscribe is very strict and requires the paths to match exactly. Additionally, the # wildcard was written at the end and only subdirectories after home are avaliable in this case. 
-5. Can # go in the middle of a topic? Try it.
+2. Why does a leading / cause trouble?
+   - As it was seen in experiment 1. The subscription is very strict and requires the topics to match exactly. Additionally, the # wildcard was written at the end and only subdirectories after home are available in this case. 
+3. Can # go in the middle of a topic? Try it.
    - Error: Invalid subscription topic
 
 ## Experiment 3: Retained messages
 1. Publish on to home/lamp/state without -r. Then start a new subscriber. Does it get anything?
+   - Nothing gets published to the subscriber
 2. Now publish with -r. Start another new subscriber.
+   - The message that was sent earlier gets published when the subscription is established
 3. Find out how to delete a retained message. Hint: send an empty payload, and look at the -n flag.
+   ```
+   docker exec mosquitto mosquitto_pub -h localhost -t home/lamp/state -m -r -n
+   ```
+   
 
 **Design question:** a light’s state should almost certainly be retained. Should a command like set: on or unlock be retained? Picture the core restarting a week later.
+- State should be retained
+- But a command should not; it should only be a 1-time thing. Otherwise, the device will keep triggering the command indefinitely
 ## Experiment 4: QoS and persistent sessions
 QoS is hard to see on one machine, so make it visible:
 
