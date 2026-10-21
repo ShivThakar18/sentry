@@ -24,11 +24,30 @@
   - /home/lamp/state
 
 **Before you publish:** write down which subscriber gets each message. Then check.
-
+1. home/lamp/state
+   - Prediction: Publish to Terminal A and B
+   - Result: Same as prediction
+2. home/lamp/set
+   - Prediction: Publish to Terminal B
+   - Result: Same as prediction
+3. home/kitchen/lamp/state
+   - Prediction: Publish to Terminal B
+   - Result: Same as prediction
+4. home
+   - Prediction: Publish to Terminal B
+   - Result: Same as prediction
+5. /home/lamp/state
+   - Prediction: None
+   - Result: None
+  
 Questions:
 1. What’s the difference between + and #?
-2. Why does a leading / cause trouble?
-3. Can # go in the middle of a topic? Try it.
+   - The + acts as a placeholder or variable. This means that when publishing messages any string or path in that place can be sent and read. Though this is more strict and only allows the + wildcard to be replaced with any other string. As seen in experiments above, only the first message was published because the "lamp" was able to fit into place. The third message also shows that you cannot add more directories or paths to replace the +.
+   - The # acts as "anything goes". Although it cannot be used in place of a + it can only be used at the end of a given path such as home/# 
+3. Why does a leading / cause trouble?
+   - As it was seen in experiment 1. The subscribe is very strict and requires the paths to match exactly. Additionally, the # wildcard was written at the end and only subdirectories after home are avaliable in this case. 
+5. Can # go in the middle of a topic? Try it.
+   - Error: Invalid subscription topic
 
 ## Experiment 3: Retained messages
 1. Publish on to home/lamp/state without -r. Then start a new subscriber. Does it get anything?
