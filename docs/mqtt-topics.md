@@ -1,9 +1,17 @@
 # MQTT Questions and Experiments
 ## Experiment 1: Hello World
+  ```
+  # to subscribe: 
+  docker exec -it mosquitto mosquitto_sub -h localhost -t test/hello -v
+
+  # to publish
+  docker exec mosquitto mosquitto_pub -h localhost -t test/hello -m "Hello MQTT!"
+  ```
 - In A, subscribe to test/hello.
 - In B, publish hi to test/hello.
 - Then publish to Test/hello and to test/hello/ (with a trailing slash).
 **Predictions:** do those last two arrive? What does that tell you about how strictly topics are matched?
+  - The last 2 do not arrive. This shows the path to publish must match exactly to what the subscribe path is. Otherwise the no message will be seen on the subscribed localhost. 
 
 ## Experiment 2: Wildcards
 - In A, subscribe to home/+/state.
