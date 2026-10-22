@@ -98,15 +98,10 @@ Questions:
    - The message that was sent earlier gets published when the subscription is established
 3. Find out how to delete a retained message. Hint: send an empty payload, and look at the -n flag.
    ```
-   docker exec mosquitto mosquitto_pub -h localhost -t home/lamp/state -m -r -n
+   docker exec mosquitto mosquitto_pub -h localhost -t home/lamp/state -r -n
    ```
-
-> [!WARNING]
-> **This command is broken.** `-m` takes the *next* argument as the message, so `-m -r` sets the message to the literal text `"-r"`, and `-r` is never seen as a flag. Then `-n` (null message) clashes with `-m`. Mosquitto either errors out or does something you didn't intend.
->
-> Fix: drop `-m` completely. `-n` *is* the message (an empty one) and `-r` makes it retained. Run your fixed command, then start a new subscriber to prove the retained message is gone. Paste the corrected command here.
->
-> **Lesson:** when a CLI flag takes a value, the value is whatever comes next, even if it looks like a flag.
+   - `-n` sends an empty message and `-r` makes it retained. Together they replace the retained value with nothing, which deletes it.
+   - (My first attempt, `-m -r -n`, was broken. `-m` takes the *next* argument as the message, so the message became the literal text `"-r"`. Lesson: when a flag takes a value, the value is whatever comes next, even if it looks like a flag.)
 
 **Design question:** a light's state should almost certainly be retained. Should a command like set: on or unlock be retained? Picture the core restarting a week later.
 - State should be retained
@@ -163,21 +158,16 @@ QoS is hard to see on one machine, so make it visible:
   - With QoS 0, it can publish at most once, but it can get lost. It cannot get queued for offline
 
 **Design question:** which of these needs QoS 1?
-- "Turn on the lights" - QoS 0 - i believe my google home does this at QoS 0. When my lights are offline, it doesn't get queued. 
-- "Temperature is 21.4°C", sent every 10 seconds - If this is critical this QoS 1 
-- "Doorbell pressed" - QoS 1 
+Three separate settings, three separate questions:
+- **QoS** = did the message reach the broker or subscriber? (It knows nothing about whether the *bulb* is reachable.)
+- **Clean vs. persistent session** = should messages pile up while I'm offline?
+- **Retained** = should a *new* subscriber see the last value?
 
-> [!WARNING]
-> **"Turn on the lights": the reasoning mixes up two different "offlines".** QoS only covers delivery between an **MQTT client and the broker**. It knows nothing about whether the *bulb* is reachable. If the bulb is unplugged, the Hue adapter still receives the command fine; it's the adapter's call to the Hue bridge that fails.
->
-> Your instinct ("I don't want a light command queued for 3 hours and then firing") is a **good** one. But the tool for that isn't QoS 0. It's **not using a persistent session for the adapter** (connect with clean session), so commands aren't queued while it's down. On a home LAN, QoS 1 for commands costs basically nothing and protects against a dropped packet.
->
-> Rethink and rewrite these three answers with this split in mind:
-> - **QoS** = did the message reach the broker or subscriber?
-> - **Clean vs. persistent session** = should messages pile up while I'm offline?
-> - **Retained** = should a *new* subscriber see the last value?
->
-> Hint for temperature: if one reading is lost, what happens 10 seconds later? Does it need a guarantee at all? And should it be retained?
+| Message | QoS | Retained | Why |
+|---|---|---|---|
+| Turn on the lights | 1 | No | Losing a tap is annoying, and QoS 1 costs nothing on a LAN. The adapter uses a **clean session**, so commands don't pile up while it's down and fire hours later. |
+| Temperature every 10 s | 0 | **Yes** | If one reading is lost, the next one arrives 10 s later. Retained so the display shows a value as soon as it boots. |
+| Doorbell pressed | 1 | **No** | Don't miss it, but retaining it would replay it on every reboot (see Q8). |
   
 ## Experiment 5: Last Will and Testament (the important one)
 The Last Will is how your core will find out an adapter has crashed.
@@ -188,6 +178,8 @@ The Last Will is how your core will find out an adapter has crashed.
 
 > [!IMPORTANT]
 > You haven't recorded the results. Did the will fire on Ctrl+C? On kill? **How many seconds** did the kill take? Add the command you used too (`--will-topic`, `--will-payload`, `--will-retain`, `-k`).
+>
+> **Expected:** Ctrl+C → **no** will. Kill → the will fires after about **7–8 s** with `-k 5`, because the broker waits 1.5 × keepalive. Run it and record what *you* saw.
 >
 > Tip for the docker setup: "closing the window" kills the `docker exec` client on your PC, but the `mosquitto_sub` process might keep running *inside the container*. If the will never fires, that's why. Try `docker exec mosquitto pkill -9 mosquitto_sub` instead. You should see the will after about **1.5 × keepalive** (around 7–8 s with `-k 5`). Did your number match?
 
@@ -250,6 +242,23 @@ Real messages will be JSON, like {"on": true, "brightness": 80}. Try publishing 
 
 # Questions We should answer before starting
 
+## Suggested scheme (used in all answers below)
+
+```
+home/device/<id>/info          ← what the device is and what it can do   (retained)
+home/device/<id>/state         ← what it's doing now                     (retained)
+home/device/<id>/set           ← please change something                 (NOT retained)
+home/device/<id>/event         ← something happened                      (NOT retained)
+home/adapter/<adapter>/status  ← online/offline (birth message + Last Will, retained)
+```
+- **One root, `home/`**, for everything. `home/#` then shows the whole system.
+- **ID format: `<adapter>-<native id>`**, for example `hue-3f9a1c`. It's unique, because the adapter prefix stops collisions, and it never changes.
+- **Room, display name and brand are data**, not part of the topic. They live in `info`, and in the core's registry when overridden.
+- **Topic rules:** lowercase, no leading or trailing `/`, IDs use `a-z0-9_-` only.
+
+> [!NOTE]
+> Adopting this scheme resolves the WARNING boxes in #1, #2 and #6 below. Update your answers there to match, then delete those boxes.
+
 > [!NOTE]
 > This is the part that matters most, and it's where most of the review notes are. Overall your answers **mirror a folder structure**: topics organised like a file system by where things physically are. The main shift in thinking: **topics should be organised by what never changes (identity), not by what might change (location, brand).** Most of the notes below come back to that.
 
@@ -291,33 +300,21 @@ Real messages will be JSON, like {"on": true, "brightness": 80}. Try publishing 
 3. State vs. command. These need separate topics. What are they called? Which is retained? Who is allowed to publish to each one?
    - e.g. home/kitchen/govee/lamp/state or home/kitchen/govee/lamp/command
    - States Retained, Commands Not Retained
-   - Unsure who should be allowed to publish
-
-> [!TIP]
-> Retained/not-retained is right. 👍 `command` works. `set` is the common convention (zigbee2mqtt, Tasmota and others use it), but either is fine as long as you're consistent.
->
-> **Who publishes**, worked out from your own architecture (React → FastAPI core → MQTT → adapters):
-> - `state`: published **only** by the adapter that owns the device. It's the only thing that actually *knows* the state.
-> - `set`/`command`: published by the **core**. The React UI talks HTTP/WebSocket to the core and never touches MQTT directly.
->
-> Why that matters: if the UI published a `state` saying "light is on" when the light didn't actually turn on, the display would lie. The UI says "please turn on" (command), and only the adapter is allowed to answer "it is on" (state).
->
-> Write those two rules into the spec. Later, Mosquitto's ACL file can *enforce* them.
+   - **Naming:** `state` and `set`. (`set` is the common convention, used by zigbee2mqtt and Tasmota.)
+   - **Who publishes:**
+     - `state`, `info`, `event`: **only the adapter** that owns the device. It's the only part that actually knows the truth.
+     - `set`: **only the core.** The React UI calls the core over HTTP/WebSocket and never touches MQTT.
+     - `adapter/<name>/status`: the adapter publishes `online` (its birth message). The **broker** publishes `offline` (the will) if the adapter dies.
+   - **Why:** if the UI could publish `state`, it could claim "light is on" when it isn't, and the display would lie. The UI asks (`set`); only the adapter answers (`state`). Mosquitto's ACL file can enforce this later.
 
 5. Granularity. Is a whole device one JSON state message, or does each attribute (/brightness, /power) get its own topic? List a trade-off on each side.
-   - I think it makes sense to have separate JSON messages per state of device based on commands
-   - Unsure about trade-offs
+   - **Choice:** `state` = **one full JSON object** per device. A `set` command can be **partial**: `{"brightness": 50}` changes only brightness and leaves the rest alone.
+   - **Trade-offs:**
 
-> [!IMPORTANT]
-> The answer isn't clear yet. "Separate JSON messages per state … based on commands" could mean either option. Here's a scenario to help you decide:
->
-> *You change a Hue light from dim red to bright blue.*
-> - **Per-attribute topics** (`.../brightness`, `.../color`): two separate messages arrive. For a moment, the UI might show **bright red**, a state that never existed. You also have N retained messages per device to clean up. On the plus side, a subscriber that only cares about brightness gets tiny, simple payloads.
-> - **One JSON state per device**: `{"on": true, "brightness": 100, "color": "blue"}` arrives as one message, so the change is atomic. There's one retained message per device and the UI parses one thing. The cost: every change resends the whole object, which is trivial for a light.
->
-> Common pattern worth considering: **state = full JSON object**, while **commands may be partial** (`{"brightness": 50}` changes only brightness and leaves the rest alone).
->
-> Pick one, and write the trade-off you accepted in a sentence. (Also, numbering skips 4.)
+     | | One JSON per device | One topic per attribute |
+     |---|---|---|
+     | ✅ | Atomic: going from dim red to bright blue arrives as one message, never "bright red" in between. One retained message per device. One parse in the UI. | Tiny, simple payloads. You can subscribe to only the attribute you care about. |
+     | ❌ | Resends the whole object on every change (trivial for home devices). | Updates arrive separately, so the UI can show states that never existed. N retained messages per device to clean up. |
 
 6. Discovery and capabilities. When the Hue adapter starts, how does it tell the core "I have 2 lights; they support on/off, brightness and colour"? Where does that message go, and is it retained?
    - lets have it retained in a topic called home/adapters/phillips/device/info/
@@ -336,49 +333,62 @@ Real messages will be JSON, like {"on": true, "brightness": 80}. Try publishing 
 > **Now** is a good time to read Home Assistant's "MQTT Discovery" docs and compare.
 
 7. Availability. Your topic for the birth message and Last Will, per adapter or per device.
-    - Should be per device!!
-
-> [!WARNING]
-> Look back at Experiment 5. The will belongs to an **MQTT connection**, and each connection gets **exactly one** will. How many MQTT connections does the Hue adapter have: one per light, or one in total?
->
-> That means the **Last Will can only be per adapter**. But your instinct for per-device is still useful, because there are **two different failures**:
-> - **The adapter process crashed** → the broker fires the will → `<adapter availability topic>` = `offline`
-> - **The adapter is fine but one bulb is unplugged** → the will can't help, because the connection is still alive. The adapter has to *notice* and publish it itself (an `available` field in the device state, or its own per-device topic).
->
-> So you need **both**. The core shows a device as online only if *its adapter is online* **and** *the device itself is reachable*. Rewrite this answer with both topics.
+    - ~~Should be per device!!~~ **Both levels**, because there are two different failures:
+    - **Adapter level** (the process crashed): `home/adapter/hue/status` = `online` / `offline`, retained. It's set by the birth message and the Last Will. The will belongs to an MQTT *connection*, and there's one connection per adapter, so one will per adapter.
+    - **Device level** (the adapter is fine but a bulb is unplugged): an `"available": true/false` field inside the device's `state`. The adapter sets it when it notices the device has stopped responding.
+    - **Core rule:** a device is online only if **adapter = `online` AND `available` = true**.
 
 8. Events vs. state. "Doorbell pressed" isn't really a state. Does it belong somewhere else? Should it be retained?
-    - This is definately an event because
-    - This should be another topic like
-
-> [!IMPORTANT]
-> Unfinished. Finish the "because" first, then the topic. Questions to guide you:
-> - **Retained?** Picture this: the doorbell rang at 2 pm, and you reboot the display at 9 pm. With retention, what would the UI do on startup?
-> - **QoS?** You already answered this in Experiment 4. Make the two answers agree.
-> - **Payload:** an event is a moment, not a value. What does the receiver need? Think about *which* event, and *when* it happened.
-> - **Topic:** an event comes *from a device*, so should it live next to that device's `state` and `set`? Does a doorbell even have meaningful state? (It might, e.g. battery level.)
-> - Is a motion detection from the mmWave sensor an event, a state, or both? (Hint: "motion detected" vs. "room occupied".)
+    - This is definitely an event because a press is a *moment* in time, not an ongoing *value*. "What is the doorbell right now?" has no meaningful answer; "when was it last pressed?" does.
+    - This should be another topic like `home/device/<id>/event`, next to the device's other topics.
+    - **Not retained.** Otherwise rebooting the display at 9 pm would replay a ring from 2 pm.
+    - **QoS 1.** Don't miss it (matches Experiment 4).
+    - **Payload** says which event and when: `{"type": "ring", "ts": "2026-10-22T18:04:11Z"}`
+    - The doorbell can still have **state** too: `{"battery_pct": 76, "available": true}`.
+    - **mmWave sensor = both.** `event` = `{"type": "motion"}` each time it fires. `state` = `{"occupied": true}`, which the adapter clears after N seconds with no motion. Wake-on-approach uses the event; night-dim logic uses the state.
 
 9. Examples. Show your scheme handling a Hue light, a Govee pot light, the BME280 sensor and the Ecobee.
-    - no clue need help
 
-> [!IMPORTANT]
-> Do this **last**, after fixing #1, #2, #5, #6 and #7. The examples are just those answers applied to real devices. Here's a template plus one worked example using **placeholder** names. Swap in *your* chosen root, path pattern and names.
->
-> **Example: Hue light** (placeholders: `<root>`, `<id>`, and `set` vs. `command`)
-> | Topic | Who publishes | Retained | QoS | Example payload |
-> |---|---|---|---|---|
-> | `<root>/device/<id>/info` | hue adapter | yes | 1 | `{"id": "...", "name": "Kitchen Lamp", "adapter": "hue", "capabilities": ["on_off", "brightness", "color"]}` |
-> | `<root>/device/<id>/state` | hue adapter | yes | ? | `{"on": true, "brightness": 80, "color": "#ff8800", "available": true}` |
-> | `<root>/device/<id>/set` | core | **no** | 1 | `{"brightness": 40}` |
-> | `<root>/adapter/hue/status` | hue adapter (birth) / broker (will) | yes | 1 | `online` / `offline` |
->
-> Now do the other three yourself. What makes each one **different**:
-> - **Govee pot light:** almost the same as Hue. If your scheme is right, the *only* things that change are the id and the adapter name. If the UI would need to know it's a Govee, something has leaked.
-> - **BME280:** it's wired straight to the Pi, with no cloud and no bridge. Who is its "adapter"? (A tiny local adapter is fine.) Can you *command* a temperature sensor? So does it need a `set` topic? Think about units: `21.4`, or `{"temperature_c": 21.4}`?
-> - **Ecobee:** a thermostat is both sensor **and** actuator. What's in its state (current temp, target temp, mode, humidity, maybe occupancy)? What can you `set`? Should "current temp" ever be accepted in a command? (No. Why not?)
->
-> Then do the walkthrough from Step 1: *Hue adapter starts → you tap a light on the display → the adapter crashes*. List every message, in order, using your real topic names.
+**Hue light** (`hue-3f9a1c`)
+
+| Topic | Publisher | Retained | QoS | Payload |
+|---|---|---|---|---|
+| `home/device/hue-3f9a1c/info` | hue adapter | yes | 1 | `{"id":"hue-3f9a1c","name":"Kitchen Lamp","room":"kitchen","adapter":"hue","model":"LCA001","capabilities":["on_off","brightness","color"]}` |
+| `home/device/hue-3f9a1c/state` | hue adapter | yes | 0 | `{"on":true,"brightness":80,"color":"#ff8800","available":true}` |
+| `home/device/hue-3f9a1c/set` | core | no | 1 | `{"brightness":40}` |
+| `home/adapter/hue/status` | hue adapter (birth) / broker (will) | yes | 1 | `online` / `offline` |
+
+**Govee pot light** (`govee-a1b2c3`): **identical shape** to Hue. Only the `id`, `adapter` and `model` change. If the UI ever needs `if adapter == "govee"`, the abstraction has leaked.
+
+**BME280** (`local-bme280`): wired to the Pi and handled by a tiny `local` adapter.
+
+| Topic | Publisher | Retained | QoS | Payload |
+|---|---|---|---|---|
+| `home/device/local-bme280/info` | local adapter | yes | 1 | `{"id":"local-bme280","name":"Display Sensor","adapter":"local","capabilities":["temperature","humidity","pressure"]}` |
+| `home/device/local-bme280/state` | local adapter | yes | 0 | `{"temperature_c":21.4,"humidity_pct":45.2,"pressure_hpa":1013.2,"ts":"2026-10-22T18:04:00Z"}` |
+| `home/device/local-bme280/set` | — | — | — | **None.** You can't command a sensor, so it has no `set` topic and no `on_off` capability. |
+
+Units go in the key name (`temperature_c`) so payloads explain themselves.
+
+**Ecobee** (`ecobee-main`): both a sensor and an actuator.
+
+| Topic | Publisher | Retained | QoS | Payload |
+|---|---|---|---|---|
+| `home/device/ecobee-main/info` | ecobee adapter | yes | 1 | `{..., "capabilities":["temperature","humidity","target_temperature","hvac_mode"]}` |
+| `home/device/ecobee-main/state` | ecobee adapter | yes | 0 | `{"current_temp_c":20.8,"target_temp_c":21.5,"mode":"heat","humidity_pct":38,"available":true}` |
+| `home/device/ecobee-main/set` | core | no | 1 | `{"target_temp_c":22}` or `{"mode":"off"}` |
+
+The adapter **rejects** a `set` containing `current_temp_c`. It's a measurement, not a setting. That's why state fields and command fields differ.
+
+### Walkthrough: start → tap → crash
+1. The Hue adapter connects with will = `home/adapter/hue/status` → `offline` (retained).
+2. It publishes `home/adapter/hue/status` → `online` (retained). This is the birth message.
+3. It publishes `info` and `state` for each light (retained).
+4. The core is subscribed to `home/#`, so it builds its registry and the UI draws the lights.
+5. You tap "Kitchen Lamp on". The UI calls the core API, and the core publishes `home/device/hue-3f9a1c/set` → `{"on":true}`.
+6. The adapter calls the Hue bridge, then publishes `state` → `{"on":true,...}`. The UI updates. **The UI only changes once the real state comes back**, not when you tap.
+7. The adapter crashes. After about 1.5 × keepalive, the broker publishes `home/adapter/hue/status` → `offline`.
+8. The core marks every `hue-*` device unavailable and the UI greys them out.
 
 > [!NOTE]
 > **Not covered yet. Add a short "Conventions" section at the top of the spec:**
