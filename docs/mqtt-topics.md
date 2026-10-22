@@ -67,17 +67,40 @@ Questions:
 QoS is hard to see on one machine, so make it visible:
 
 - Add -d (debug) to both the subscriber and the publisher, then publish with -q 0, then -q 1, then -q 2. Count the packets each time (PUBLISH, PUBACK, PUBREC…).
+  ```
+  shivt@GHOSTTT:~$ docker exec mosquitto mosquitto_pub -h localhost -t home -d -m "home 0" -q 0
+  Client null sending CONNECT
+  Client (null) received CONNACK (0)
+  Client null sending PUBLISH (d0, q0, r0, m1, 'home', ... (6 bytes))
+  Client null sending DISCONNECT
+  shivt@GHOSTTT:~$ docker exec mosquitto mosquitto_pub -h localhost -t home -d -m "home 1" -q 1
+  Client null sending CONNECT
+  Client (null) received CONNACK (0)
+  Client null sending PUBLISH (d0, q1, r0, m1, 'home', ... (6 bytes))
+  Client null received PUBACK (Mid: 1, RC:0)
+  Client null sending DISCONNECT
+  shivt@GHOSTTT:~$ docker exec mosquitto mosquitto_pub -h localhost -t home -d -m "home 2" -q 2
+  Client null sending CONNECT
+  Client (null) received CONNACK (0)
+  Client null sending PUBLISH (d0, q2, r0, m1, 'home', ... (6 bytes))
+  Client null received PUBREC (Mid: 1)
+  Client null sending PUBREL (m1)
+  Client null received PUBCOMP (Mid: 1, RC:0)
+  Client null sending DISCONNECT
+  ```
 - Offline delivery:
   1. Start a subscriber with a fixed client ID (-i), the “don’t clean session” flag (-c), and -q 1.
   2. Close it.
   3. Publish a few QoS 1 messages.
   4. Reconnect it with the same ID.
 - What happens? Now repeat with QoS 0.
+  - With QoS 1, publishes once connected and gets queued while offline
+  - With QoS 0, it can publish at most once, but it can get lost. It cannot get queued for offline
 
 **Design question:** which of these needs QoS 1?
-- “Turn on the lights”
-- “Temperature is 21.4°C”, sent every 10 seconds
-- “Doorbell pressed”
+- “Turn on the lights” - QoS 0 - i believe my google home does this at QoS 0. When my lights are offline, it doesn't get queued. 
+- “Temperature is 21.4°C”, sent every 10 seconds - If this is critical this QoS 1 
+- “Doorbell pressed” - QoS 1 
   
 ## Experiment 5: Last Will and Testament (the important one)
 The Last Will is how your core will find out an adapter has crashed.
