@@ -11,12 +11,16 @@ As in Step 1, **predict before you press Enter**.
 ## 3a. Where the code lives
 You're working in WSL (your `shivt@GHOSTTT:~$` prompt). Clone the repo into your **WSL home** (`~/`), not `/mnt/c/...`.
 - **Question:** why? Look up "WSL file system performance" and "file permissions on /mnt/c". You'll care once Docker bind-mounts your config files.
+   - Delivers near-native CPU and memory performance, but speed depends heavily on wehre your files are stored and how much RAM is allocated
+   - File System Location - Fast speeds when project files kept in /home/username/ or ~/
+   - Accessing Windows Drives from inside WSL uses a 9P translation protocol, making file operations slower
 - Open it in VS Code from WSL with `code .`. Check that the bottom-left corner says **WSL**.
 
 ## 3b. Git identity and auth
 - Set `user.name` and `user.email` in git's global config.
 - Authenticate to GitHub. Either install the `gh` CLI and run `gh auth login`, or set up an SSH key.
 - **Question:** why does GitHub no longer accept your password for `git push`?
+     - Using SSH to clone and push
 
 ## 3c. Layout
 Create the folders. Git doesn't track empty folders, so add a `.gitkeep` file or a README to each.
@@ -29,6 +33,8 @@ core/                  ← FastAPI, later
 ui/                    ← React, later
 ```
 **Question:** later you'll also have `adapters/govee`, `adapters/local` and others. What will they share, such as MQTT connection code and the birth/will logic? Where would shared code live? You don't need to build it yet; just write the question down in an issue.
+   - Unsure about what they will share fully
+   - Shared code maybe should stay in `adapters/`
 
 ## 3d. `.gitignore` and secrets
 1. Find GitHub's official `.gitignore` templates (the `github/gitignore` repo) for **Python** and **Node**, and combine them.
@@ -39,6 +45,7 @@ ui/                    ← React, later
    - Run `git check-ignore -v .env` and work out what its output means.
 4. **The `.env.example` pattern:** commit a `.env.example` with the variable *names* and dummy values. The real `.env` never leaves your machine.
    - **Question:** if you accidentally committed a real key and then deleted it in the next commit, is it safe? (Look up git history. The correct response is to *rotate* the key, meaning create a new one and revoke the old.)
+   - This is not safe. History can be seen for everyone who sees the repo. 
 
 ## 3e. The workflow you'll use for everything
 1. Create **GitHub Issues** for Step 2, Step 4, and "split mqtt-topics.md".
@@ -47,6 +54,7 @@ ui/                    ← React, later
 4. Push, open a **pull request** on GitHub, and write "Closes #N" in the description. Read your own diff in the PR view, then merge.
 5. Back in your terminal: `git switch main`, `git pull`, and delete the old branch.
    - **Question:** what happened to the issue when you merged?
+        - Issue stayed open
 
 ## 3f. README
 Keep it short: what the project is, the architecture in one line (UI → core → MQTT → adapters), how to start the broker (fill this in after Step 2), and links to `docs/`.
