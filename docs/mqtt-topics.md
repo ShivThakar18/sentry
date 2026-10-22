@@ -111,12 +111,39 @@ The Last Will is how your core will find out an adapter has crashed.
 
 Questions:
 1. Why does Ctrl+C behave differently from a kill?
-2. The will only ever says “offline”. How should an adapter announce “online” when it starts? This pattern is often called a birth message.
+   - Ctrl+C acts has a clean disconenct and sends a DISCONNECT Packet
+3. The will only ever says “offline”. How should an adapter announce “online” when it starts? This pattern is often called a birth message.
+   - A birth message is a retained online the adapter publishes to its own will topic right after it connects. The topic then always holds the latest truth:
 
 ## Experiment 6: JSON payloads
-Real messages will be JSON, like {"on": true, "brightness": 80}. Try publishing one from PowerShell and you’ll run into quoting problems. Work out two fixes:
+Real messages will be JSON, like {"on": true, "brightness": 80}. Try publishing one from PowerShell, and you’ll run into quoting problems. Work out two fixes:
+  ```
+  # Powershell
+  docker exec mosquitto mosquitto_pub -h localhost -t home/kitchen/light -m '{"on": true, "brightness": 80}'
+
+  # MQTT
+  home/kitchen/light {on: true, brightness: 80}
+  ```
 - Quote it correctly for your shell.
+  ```
+  # Powershell
+  docker exec mosquitto mosquitto_pub -h localhost -t home/kitchen/light -m '{\"on\": true, \"brightness\": 80}'
+
+  # MQTT
+  home/kitchen/light {"on": true, "brightness": 80}
+  ```
 - Use the -f flag to publish from a file.
+  ```
+  # Creating a file
+  >Set-Content -Path light.json -Value '{"on": true, "brightness": 80}' -Encoding ascii
+  >docker cp light.json mosquitto:/tmp/light.json
+
+  # Powershell -f command
+  docker exec mosquitto mosquitto_pub -h localhost -t home/kitchen/light -f /tmp/light.json
+  
+  # MQTT
+  home/kitchen/light {"on": true, "brightness": 80}
+  ```
 
 # Questions We should answer before starting
 1. Root and namespace. Does everything sit under one root, like home/? How do you keep device traffic separate from system traffic such as adapter status and core events?
