@@ -147,10 +147,27 @@ Real messages will be JSON, like {"on": true, "brightness": 80}. Try publishing 
 
 # Questions We should answer before starting
 1. Root and namespace. Does everything sit under one root, like home/? How do you keep device traffic separate from system traffic such as adapter status and core events?
+   - Lets have everything sit under home/
+   - Each device will be tracked with rooms
+   - System Traffic should be kept and tracked in another folder maybe sys/
 2. Identity. What goes in the path: device type, room, brand, or a stable ID? What happens to your topics if you move a lamp to another room?
+   - home -> room -> device type/brand -> device -> status
+   - If a lamp is moved to another room it should be moved into a directory related to that room
+   - home/kitchen/govee/lamp -> home/bedroom/govee/lamp
 3. State vs. command. These need separate topics. What are they called? Which is retained? Who is allowed to publish to each one?
-4. Granularity. Is a whole device one JSON state message, or does each attribute (/brightness, /power) get its own topic? List a trade-off on each side.
-5. Discovery and capabilities. When the Hue adapter starts, how does it tell the core “I have 2 lights; they support on/off, brightness and colour”? Where does that message go, and is it retained?
-6. Availability. Your topic for the birth message and Last Will, per adapter or per device.
-7. Events vs. state. “Doorbell pressed” isn’t really a state. Does it belong somewhere else? Should it be retained?
-8. Examples. Show your scheme handling a Hue light, a Govee pot light, the BME280 sensor and the Ecobee.
+   - e.g. home/kitchen/govee/lamp/state or home/kitchen/govee/lamp/command
+   - States Retained, Commands Not Retained
+   - Unsure who should be allowed to publish
+5. Granularity. Is a whole device one JSON state message, or does each attribute (/brightness, /power) get its own topic? List a trade-off on each side.
+   - I think it makes sense to have separate JSON messages per state of device based on commands
+   - Unsure about trade-offs
+6. Discovery and capabilities. When the Hue adapter starts, how does it tell the core “I have 2 lights; they support on/off, brightness and colour”? Where does that message go, and is it retained?
+   - lets have it retained in a topic called home/adapters/phillips/device/info/
+   - Message shall be a JSON with information about lights, support, brightness, colours, etc. 
+7. Availability. Your topic for the birth message and Last Will, per adapter or per device.
+    - Should be per device!!
+8. Events vs. state. “Doorbell pressed” isn’t really a state. Does it belong somewhere else? Should it be retained?
+    - This is definately an event because
+    - This should be another topic like
+9. Examples. Show your scheme handling a Hue light, a Govee pot light, the BME280 sensor and the Ecobee.
+    - no clue need help
