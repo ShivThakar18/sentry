@@ -72,8 +72,11 @@ You already have Mosquitto running in a container, so you're halfway there. This
 
 ## 2a. Inspect what you have
 - Run `docker ps`, then `docker inspect mosquitto`. Find the **Mounts** and **Ports** sections. Is anything mounted? Is any port mapped?
+   - PORTS 127.0.0.1:1883 -> 1883
+   - Mounts mosquitto/config and mosquitto/data and mosquitto/local
 - **Check for clashes:** is the Windows Mosquitto *service* still running? If it is, it's holding port 1883 on Windows. Decide now: stop it and set it to manual, because Docker is your broker from here on.
-
+   - It is still running and I am unsure what we should do here.
+- 
 ## 2b. Experiment: how fragile is it right now?
 1. Publish a **retained** message to `test/persist`.
 2. Run `docker restart mosquitto`, then subscribe. **Predict:** is the retained message still there?
