@@ -75,14 +75,29 @@ You already have Mosquitto running in a container, so you're halfway there. This
    - PORTS 127.0.0.1:1883 -> 1883
    - Mounts mosquitto/config and mosquitto/data and mosquitto/local
 - **Check for clashes:** is the Windows Mosquitto *service* still running? If it is, it's holding port 1883 on Windows. Decide now: stop it and set it to manual, because Docker is your broker from here on.
-   - It is still running and I am unsure what we should do here.
-- 
+   - Stop the Windows MQTT service and set it to Manual. Keep it installed, because its command-line tools (`mosquitto_sub.exe` and `mosquitto_pub.exe`) are handy for testing from Windows.
+   - WHY?
+      - Only one program can listen on Port 1883. Your Docker container may not map 1883 yet, so there's no clash TODAY. In step 2f I will end up mapping it, and it either:
+         - Docker refuses to start with "port is already allocated"
+         - The worse case: something on Windows connect to localhost:1883 and silently reaches the Windows Broker and not the Docker one.
+        -  The Docker broker is the one that matters. It's the one that will run on the Pi, using the docker-compose.yml and mosquitto.conf. The windows service is dead end and it would have to keep in sync.
+        -  Manual, not Uninstall: it won't start on boot or get in the way, but you can still start it if you ever want to compare
+
+How? 
+1. Before: run netstat -ano | findstr 1883 in PowerShell and note the PID in the last column. In Task Manager → Details, find that PID. Is it mosquitto.exe? That confirms the Windows service is holding the port.
+2. Stop it and set it to Manual. Do one of these:
+   - GUI: press Win+R, type services.msc, find Mosquitto Broker, right-click → Stop. Then open Properties and set Startup type to Manual.
+   - PowerShell (run as Administrator): look up Stop-Service and Set-Service -StartupType. The service name is mosquitto, and you can confirm it with Get-Service *mosq*.
+3. After: run netstat again. Predict: what will it show? If your container doesn’t map 1883 yet, the answer should be nothing. After Step 2f it should show the Docker process (com.docker.backend or wslrelay) instead of mosquitto.exe.
+4. Reboot check: after your next restart, run Get-Service mosquitto. It should say Stopped.
+  
 ## 2b. Experiment: how fragile is it right now?
 1. Publish a **retained** message to `test/persist`.
 2. Run `docker restart mosquitto`, then subscribe. **Predict:** is the retained message still there?
 3. Now try `docker rm -f mosquitto`, then run the container again the same way you did originally. Is the message still there?
 
 Write down why you got each result. The words to look up are **container filesystem** and Mosquitto's **`persistence`** setting, which is off by default.
+
 
 ## 2c. Experiment: can anything outside the container reach the broker?
 You've been using `docker exec`, which runs the client *inside* the container. Try from outside instead: use MQTT Explorer on Windows, or `mosquitto_sub -h localhost` from Windows. **Predict:** does it connect?
