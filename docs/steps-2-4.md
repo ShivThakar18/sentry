@@ -86,13 +86,13 @@ You already have Mosquitto running in a container, so you're halfway there. This
    >     -  The Docker broker is the one that matters. It's the one that will run on the Pi, using the docker-compose.yml and mosquitto.conf. The windows service is dead end and it would have to keep in sync.
    >     -  Manual, not Uninstall: it won't start on boot or get in the way, but you can still start it if you ever want to compare
 
-> How? 
-> 1. Before: run netstat -ano | findstr 1883 in PowerShell and note the PID in the last column. In Task Manager → Details, find that PID. Is it mosquitto.exe? That confirms the Windows service is holding the port.
-> 2. Stop it and set it to Manual. Do one of these:
-  > - GUI: press Win+R, type services.msc, find Mosquitto Broker, right-click → Stop. Then open Properties and set Startup type to Manual.
-  > - PowerShell (run as Administrator): look up Stop-Service and Set-Service -StartupType. The service name is mosquitto, and you can confirm it with Get-Service *mosq*.
-> 3. After: run netstat again. Predict: what will it show? If your container doesn’t map 1883 yet, the answer should be nothing. After Step 2f it should show the Docker process (com.docker.backend or wslrelay) instead of mosquitto.exe.
-> 4. Reboot check: after your next restart, run Get-Service mosquitto. It should say Stopped.
+  > How? 
+  > 1. Before: run netstat -ano | findstr 1883 in PowerShell and note the PID in the last column. In Task Manager → Details, find that PID. Is it mosquitto.exe? That confirms the Windows service is holding the port.
+  > 2. Stop it and set it to Manual. Do one of these:
+    > - GUI: press Win+R, type services.msc, find Mosquitto Broker, right-click → Stop. Then open Properties and set Startup type to Manual.
+    > - PowerShell (run as Administrator): look up Stop-Service and Set-Service -StartupType. The service name is mosquitto, and you can confirm it with Get-Service *mosq*.
+  > 3. After: run netstat again. Predict: what will it show? If your container doesn’t map 1883 yet, the answer should be nothing. After Step 2f it should show the Docker process (com.docker.backend or wslrelay) instead of mosquitto.exe.
+  > 4. Reboot check: after your next restart, run Get-Service mosquitto. It should say Stopped.
   
 ## 2b. Experiment: how fragile is it right now?
 1. Publish a **retained** message to `test/persist`.
