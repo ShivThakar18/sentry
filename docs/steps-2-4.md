@@ -11,16 +11,18 @@ As in Step 1, **predict before you press Enter**.
 ## 3a. Where the code lives
 You're working in WSL (your `shivt@GHOSTTT:~$` prompt). Clone the repo into your **WSL home** (`~/`), not `/mnt/c/...`.
 - **Question:** why? Look up "WSL file system performance" and "file permissions on /mnt/c". You'll care once Docker bind-mounts your config files.
-   - Delivers near-native CPU and memory performance, but speed depends heavily on wehre your files are stored and how much RAM is allocated
-   - File System Location - Fast speeds when project files kept in /home/username/ or ~/
-   - Accessing Windows Drives from inside WSL uses a 9P translation protocol, making file operations slower
+
+  > Delivers near-native CPU and memory performance, but speed depends heavily on wehre your files are stored and how much RAM is allocated
+  > File System Location - Fast speeds when project files kept in /home/username/ or ~/
+  > Accessing Windows Drives from inside WSL uses a 9P translation protocol, making file operations slower
+
 - Open it in VS Code from WSL with `code .`. Check that the bottom-left corner says **WSL**.
 
 ## 3b. Git identity and auth
 - Set `user.name` and `user.email` in git's global config.
 - Authenticate to GitHub. Either install the `gh` CLI and run `gh auth login`, or set up an SSH key.
 - **Question:** why does GitHub no longer accept your password for `git push`?
-     - Using SSH to clone and push
+     > Using SSH to clone and push
 
 ## 3c. Layout
 Create the folders. Git doesn't track empty folders, so add a `.gitkeep` file or a README to each.
@@ -33,8 +35,8 @@ core/                  ← FastAPI, later
 ui/                    ← React, later
 ```
 **Question:** later you'll also have `adapters/govee`, `adapters/local` and others. What will they share, such as MQTT connection code and the birth/will logic? Where would shared code live? You don't need to build it yet; just write the question down in an issue.
-   - Unsure about what they will share fully
-   - Shared code maybe should stay in `adapters/`
+   > Unsure about what they will share fully
+   > Shared code maybe should stay in `adapters/`
 
 ## 3d. `.gitignore` and secrets
 1. Find GitHub's official `.gitignore` templates (the `github/gitignore` repo) for **Python** and **Node**, and combine them.
@@ -45,7 +47,7 @@ ui/                    ← React, later
    - Run `git check-ignore -v .env` and work out what its output means.
 4. **The `.env.example` pattern:** commit a `.env.example` with the variable *names* and dummy values. The real `.env` never leaves your machine.
    - **Question:** if you accidentally committed a real key and then deleted it in the next commit, is it safe? (Look up git history. The correct response is to *rotate* the key, meaning create a new one and revoke the old.)
-   - This is not safe. History can be seen for everyone who sees the repo. 
+   > This is not safe. History can be seen for everyone who sees the repo. 
 
 ## 3e. The workflow you'll use for everything
 1. Create **GitHub Issues** for Step 2, Step 4, and "split mqtt-topics.md".
@@ -54,14 +56,15 @@ ui/                    ← React, later
 4. Push, open a **pull request** on GitHub, and write "Closes #N" in the description. Read your own diff in the PR view, then merge.
 5. Back in your terminal: `git switch main`, `git pull`, and delete the old branch.
    - **Question:** what happened to the issue when you merged?
-        - Issue stayed open
+        > Issue stayed open
 
 ## 3f. README
 Keep it short: what the project is, the architecture in one line (UI → core → MQTT → adapters), how to start the broker (fill this in after Step 2), and links to `docs/`.
+   > Will do this later...
 
 ### ✅ Step 3 is done when…
-- [ ] The repo is cloned in WSL and opens in VS Code (WSL mode)
-- [ ] `.env` is provably ignored, and `.env.example` is committed
+- [x] The repo is cloned in WSL and opens in VS Code (WSL mode)
+- [x] `.env` is provably ignored, and `.env.example` is committed
 - [ ] You've merged one PR that closed an issue
 
 ---
@@ -72,24 +75,24 @@ You already have Mosquitto running in a container, so you're halfway there. This
 
 ## 2a. Inspect what you have
 - Run `docker ps`, then `docker inspect mosquitto`. Find the **Mounts** and **Ports** sections. Is anything mounted? Is any port mapped?
-   - PORTS 127.0.0.1:1883 -> 1883
-   - Mounts mosquitto/config and mosquitto/data and mosquitto/local
+   > PORTS 127.0.0.1:1883 -> 1883
+   > Mounts mosquitto/config and mosquitto/data and mosquitto/local
 - **Check for clashes:** is the Windows Mosquitto *service* still running? If it is, it's holding port 1883 on Windows. Decide now: stop it and set it to manual, because Docker is your broker from here on.
    - Stop the Windows MQTT service and set it to Manual. Keep it installed, because its command-line tools (`mosquitto_sub.exe` and `mosquitto_pub.exe`) are handy for testing from Windows.
-   - WHY?
-      - Only one program can listen on Port 1883. Your Docker container may not map 1883 yet, so there's no clash TODAY. In step 2f I will end up mapping it, and it either:
-         - Docker refuses to start with "port is already allocated"
-         - The worse case: something on Windows connect to localhost:1883 and silently reaches the Windows Broker and not the Docker one.
-        -  The Docker broker is the one that matters. It's the one that will run on the Pi, using the docker-compose.yml and mosquitto.conf. The windows service is dead end and it would have to keep in sync.
-        -  Manual, not Uninstall: it won't start on boot or get in the way, but you can still start it if you ever want to compare
+   > WHY?
+   >  - Only one program can listen on Port 1883. Your Docker container may not map 1883 yet, so there's no clash TODAY. In step 2f I will end up mapping it, and it either:
+   >     - Docker refuses to start with "port is already allocated"
+   >     - The worse case: something on Windows connect to localhost:1883 and silently reaches the Windows Broker and not the Docker one.
+   >     -  The Docker broker is the one that matters. It's the one that will run on the Pi, using the docker-compose.yml and mosquitto.conf. The windows service is dead end and it would have to keep in sync.
+   >     -  Manual, not Uninstall: it won't start on boot or get in the way, but you can still start it if you ever want to compare
 
-How? 
-1. Before: run netstat -ano | findstr 1883 in PowerShell and note the PID in the last column. In Task Manager → Details, find that PID. Is it mosquitto.exe? That confirms the Windows service is holding the port.
-2. Stop it and set it to Manual. Do one of these:
-   - GUI: press Win+R, type services.msc, find Mosquitto Broker, right-click → Stop. Then open Properties and set Startup type to Manual.
-   - PowerShell (run as Administrator): look up Stop-Service and Set-Service -StartupType. The service name is mosquitto, and you can confirm it with Get-Service *mosq*.
-3. After: run netstat again. Predict: what will it show? If your container doesn’t map 1883 yet, the answer should be nothing. After Step 2f it should show the Docker process (com.docker.backend or wslrelay) instead of mosquitto.exe.
-4. Reboot check: after your next restart, run Get-Service mosquitto. It should say Stopped.
+> How? 
+> 1. Before: run netstat -ano | findstr 1883 in PowerShell and note the PID in the last column. In Task Manager → Details, find that PID. Is it mosquitto.exe? That confirms the Windows service is holding the port.
+> 2. Stop it and set it to Manual. Do one of these:
+  > - GUI: press Win+R, type services.msc, find Mosquitto Broker, right-click → Stop. Then open Properties and set Startup type to Manual.
+  > - PowerShell (run as Administrator): look up Stop-Service and Set-Service -StartupType. The service name is mosquitto, and you can confirm it with Get-Service *mosq*.
+> 3. After: run netstat again. Predict: what will it show? If your container doesn’t map 1883 yet, the answer should be nothing. After Step 2f it should show the Docker process (com.docker.backend or wslrelay) instead of mosquitto.exe.
+> 4. Reboot check: after your next restart, run Get-Service mosquitto. It should say Stopped.
   
 ## 2b. Experiment: how fragile is it right now?
 1. Publish a **retained** message to `test/persist`.
