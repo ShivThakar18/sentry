@@ -65,7 +65,7 @@ Keep it short: what the project is, the architecture in one line (UI → core �
 ### ✅ Step 3 is done when…
 - [x] The repo is cloned in WSL and opens in VS Code (WSL mode)
 - [x] `.env` is provably ignored, and `.env.example` is committed
-- [ ] You've merged one PR that closed an issue
+- [x] You've merged one PR that closed an issue
 
 ---
 
@@ -101,6 +101,9 @@ You already have Mosquitto running in a container, so you're halfway there. This
 
 Write down why you got each result. The words to look up are **container filesystem** and Mosquitto's **`persistence`** setting, which is off by default.
 
+> 1. 
+> 2. 
+> 3. 
 
 ## 2c. Experiment: can anything outside the container reach the broker?
 You've been using `docker exec`, which runs the client *inside* the container. Try from outside instead: use MQTT Explorer on Windows, or `mosquitto_sub -h localhost` from Windows. **Predict:** does it connect?
@@ -110,6 +113,10 @@ Two separate things could block it:
 2. **Mosquitto 2.x "local only" mode.** With no config, it only accepts connections from *its own* localhost, and inside a container that means the container itself.
 
 Figure out which one is blocking you. Probably both.
+
+> 
+> 
+> 
 
 ## 2d. Write `deploy/mosquitto/mosquitto.conf`
 Research these settings in the official Mosquitto config docs and decide on a value for each:
