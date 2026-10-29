@@ -1,6 +1,6 @@
 docs/
 docs/notes/
-deploy/mosquitto/
+deploy/data/
 adapters/hue/
 core/
 ui/

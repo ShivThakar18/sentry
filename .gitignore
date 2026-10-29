@@ -373,4 +373,27 @@ vite.config.ts.timestamp-*
 .env
 .venv/
 
+# ==========================================
+# Mosquitto MQTT Broker
+# ==========================================
 
+# Ignore persistent MQTT broker data
+deploy/data/*
+!deploy/data/.gitkeep
+
+# Ignore MQTT authentication credentials
+deploy/config/passwd
+deploy/config/passwordfile
+
+# Ignore Mosquitto logs
+deploy/log/
+deploy/*.log
+
+# Ignore local environment variables
+.env
+.env.*
+!.env.example
+
+# Ignore temporary files
+*.tmp
+*.bak
