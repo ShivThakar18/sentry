@@ -4,3 +4,4 @@ deploy/data/
 adapters/hue/
 core/
 ui/
+scripts/hue/
