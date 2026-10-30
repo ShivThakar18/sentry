@@ -173,10 +173,22 @@ Three ways. Try at least two:
 3. Open `https://discovery.meethue.com` in a browser.
    - **Question:** how does a cloud service know your bridge's *local* IP?
 
+
+
 Then open `https://<bridge-ip>` in a browser. You'll get a **certificate warning**.
 - **Question:** why does a device on your own network have a certificate your browser doesn't trust? Look up "self-signed certificate". You'll need `curl -k` for now, and pinning Hue's own CA is a later improvement.
 
+> Self-Signed Certificate - Normally, when you visit an HTTPS website, its certificate is verified through a trusted Certificate Authority.
+```
+curl -k https://<HUE_BRIDGE>/api/config
+```
+> The -k flag tells curl to skip TLS certificate verification
+> This allows you to communicate with the Hue Bridge without receiving a certificate validation error
+```
+curl --cacert hue-ca.pem https://<HUE_BRIDGE_IP>/api/config
+```
 **Tip:** give the bridge a **DHCP reservation** in your router so its IP never changes.
+> My Bridge has a DHCP reservation
 
 ## 4b. Get an application key
 1. Create a free account on the **Philips Hue Developer** portal and read "Getting started" for **CLIP API v2**.
