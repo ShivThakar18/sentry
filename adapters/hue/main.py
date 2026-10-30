@@ -4,27 +4,18 @@ import os                           # access to environment variables
 import httpx                        # HTTP client used to connect with Hue Bridge API
 from dotenv import load_dotenv      # loads environment variables from a .env, required as our Hue IP and Key are stored there
 
-async def main():
+# MILESTONE 1 - GET HUE LLIGHTS INFO - JSON RESPONSE ----------------------------------------------------------------------------------------------------------------------
+async def get_hue_lights(bridge_ip, app_key):
     
-    load_dotenv()           # loads variables from .env files into this environment
-                            # this allows us to keep sensitive information safe and out of our source code
-    
-    BRIDGE_IP = os.getenv("HUE_BRIDGE_IP")          # load Hue Bridge IP Address environment variable
-    APP_KEY = os.getenv("HUE_APP_KEY")              # load Hue Application Key environment variable
-    
-    if not BRIDGE_IP or not APP_KEY:
-        raise ValueError("Mising Hue Configuration in .env")    # throws an error if either Hue IP or Key are missing
-
-    url = f"https://{BRIDGE_IP}/clip/v2/resource/light"         # construct the URL for the Hue API v2 light endpoints
+    url = f"https://{bridge_ip}/clip/v2/resource/light"         # construct the URL for the Hue API v2 light endpoints
                                                                 # this endpoint returns information about all lights connected to the bridge
-    
     
     # HTTP headers contain additional information sent with the request
     # Hue Bridge requires the application key to authenticate API requests
     headers = {
-        "hue-application-key": APP_KEY
+        "hue-application-key": app_key
     }
-
+    
     # Create an async HTTP client to communicate with the Hue Bridge
     async with httpx.AsyncClient(       # opens HTTP client and closes it automatically when done
         verify=False,                   # disables SSL certificate verification ebcause the Hue Bridge uses a certificate that is not trusted by default
@@ -57,6 +48,24 @@ async def main():
             print(f"[INFO] Device Found: [light_id: \"{light_id}\", on: \"{on}\", brightness: \"{brightness}\"]")  # print data in the form of a debug log
             print("-"*30)
 
+    return lights
+
+# MAIN FUNCTION ---------------------------------------------------------------------------------------------------------------------------------------------------------------
+async def main():
+    
+    load_dotenv()           # loads variables from .env files into this environment
+                            # this allows us to keep sensitive information safe and out of our source code
+    
+    BRIDGE_IP = os.getenv("HUE_BRIDGE_IP")          # load Hue Bridge IP Address environment variable
+    APP_KEY = os.getenv("HUE_APP_KEY")              # load Hue Application Key environment variable
+    
+    if not BRIDGE_IP or not APP_KEY:
+        raise ValueError("Mising Hue Configuration in .env")    # throws an error if either Hue IP or Key are missing
+
+    # MILESTONE 1 - GET HUE LLIGHTS INFO - JSON RESPONSE ----------------------------------------------------------------------------------------------------------------------
+    hue_lights = await get_hue_lights(BRIDGE_IP,APP_KEY)
+
+    
 
 if __name__ == "__main__":
     asyncio.run(main())     # Start the asyncio event loop and execute the main() coroutine
