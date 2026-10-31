@@ -82,3 +82,34 @@ Never retain `/set` commands. Retained commands could be replayed when the adapa
 
 Use Quality of Service Level 1 for commands and validate the payload before senind anything to the Hue Bridge.
 
+## Live Philips Hue State Synchronization
+Next step is to make the adapter react to changes in real time 
+- Toggling a light in the Hue App updates MQTT explorer automatically
+- Sending an MQTT `/set` command updates the physical light and then its MQTT `/state`
+- Changing brightness updates MQTT without restarting the adapter
+- The MQTT command listener and Hue Event listener run concurrently
+- Partial Hue events are merged into the current state instead of overwriting unrelated fields
+
+### Event Stream
+Philips Hue API v2 provides a SSE endpoint (server-sent events):
+```http
+GET /eventstream/clip/v2
+Accept: text/event-stream
+hue-application-key: YOUR_APP_KEY
+```
+Unlike a normal GET request, the connection stays open. 
+
+Whenever a Hue resource changes, the bridge can send an event over that connection. 
+
+A simplified example: `data: [{"type":"update","data":[{"id":"abc-123","type":"light","on":{"on":true}}]}]`
+
+An important detail: **Hue events often contain only changed fields**, not a complete light object
+
+### The Synchronization Process
+Example - Hue App Turns a light on
+1. Hue Bridge emits an SSE event
+2. Python identifies the light by its resource ID
+3. Python converts Hue fields into our MQTT state format
+4. Python merges the partial update into the cached state
+5. Python publishes the complete updated state with `retain=True`
+
