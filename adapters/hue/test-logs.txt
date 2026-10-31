@@ -1,0 +1,28 @@
+2026-10-31 01:24:24 [INFO] Found 2 Hue Lights
+2026-10-31 01:24:24 [DEBUG] Device Found: [light_id: "913d2349-85fc-4141-9b63-a28eac750176", on: "True", brightness: "49.01"]
+2026-10-31 01:24:24 [DEBUG] Device Found: [light_id: "f3aac727-8b7d-461e-8b86-64fe14519ddb", on: "True", brightness: "50.2"]
+2026-10-31 01:24:24 [INFO] Connected to MQTT Broker: 
+        Host: 127.0.0.1
+        Port: 1883
+2026-10-31 01:24:24 [DEBUG] Published: hue-913d2349-85fc-4141-9b63-a28eac750176
+        {'id': 'hue-913d2349-85fc-4141-9b63-a28eac750176', 'name': 'Desk Hue Left', 'manufacturer': 'Philips Hue', 'type': 'light', 'capabilities': ['on', 'dimming', 'color', 'color_temperature']}
+        {'on': True, 'brightness': 49.01, 'color': {'x': 0.6621, 'y': 0.3113}, 'color_temperature': None}
+2026-10-31 01:24:24 [DEBUG] Published: hue-f3aac727-8b7d-461e-8b86-64fe14519ddb
+        {'id': 'hue-f3aac727-8b7d-461e-8b86-64fe14519ddb', 'name': 'Desk Hue Right', 'manufacturer': 'Philips Hue', 'type': 'light', 'capabilities': ['on', 'dimming', 'color', 'color_temperature']}
+        {'on': True, 'brightness': 50.2, 'color': {'x': 0.1535, 'y': 0.0599}, 'color_temperature': None}
+2026-10-31 01:24:24 [INFO] All Hue Lights published successfully
+2026-10-31 01:24:24 [DEBUG] Subscribed to home/device/+/set
+2026-10-31 01:24:30 [ERROR] Command failed for hue-913d2349-85fc-4141-9b63-a28eac750176
+        {'on': True}
+2026-10-31 01:25:02 [ERROR] Command failed for hue-913d2349-85fc-4141-9b63-a28eac750176
+        {'on': False}
+2026-10-31 01:25:10 [ERROR] Command failed for hue-913d2349-85fc-4141-9b63-a28eac750176
+        {'brightness': 50}
+2026-10-31 01:25:18 [ERROR] Command failed for hue-913d2349-85fc-4141-9b63-a28eac750176
+        {'on': True, 'brightness': 80}
+2026-10-31 01:25:26 [ERROR] Command failed for hue-913d2349-85fc-4141-9b63-a28eac750176
+        {'brightness': 150}
+2026-10-31 01:25:31 [DEBUG] Command received for hue-913d2349-85fc-4141-9b63-a28eac750176
+        {'on': 'yes'}
+2026-10-31 01:25:32 [ERROR] Command failed for hue-913d2349-85fc-4141-9b63-a28eac750176
+        {'on': 'yes'}
