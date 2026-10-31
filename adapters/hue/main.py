@@ -16,7 +16,6 @@ def getTimestamp():
 def log(message):
     print(f"{getTimestamp()} hue-adapter{message}")
 
-# MILESTONE 1 - GET HUE LIGHTS INFO - JSON RESPONSE --------------------------------------------------------------------------------------------------------------------------
 async def get_hue_lights(bridge_ip, app_key):
 
     func_log = f".get_hue_lights"
@@ -63,7 +62,6 @@ async def get_hue_lights(bridge_ip, app_key):
 
     return lights
 
-# MILESTONE 2 - PUBLISH LIGHTS TO MQTT ----------------------------------------------------------------------------------------------------------------------------------------
 def build_device_messages(light):           # Convert Hue API Light resource into two standardized MQTT messages
                                             #   1. info -> Device and capabilities
                                             #   2. state -> Describes the device's currect values
@@ -155,7 +153,6 @@ async def publish_lights(mqtt,lights):      # Connect to Mosquitto and publish t
 
     return known_devices
 
-# MILESTONE 3 - SUBSCRIBE MQTT TO ADAPTER -------------------------------------------------------------------------------------------------------------------------------------
 def build_hue_commands(command,capabilities):                                       # Convert an MQTT command into a Hue API v2 payload. 
 
     func_log = f".build_hue_commands"
@@ -290,7 +287,6 @@ async def listen_for_commands(mqtt, bridge_ip, app_key, known_devices):         
             ) as error:
                 log(f"{func_log} [ERROR] command failed for {device_id} with \n\t{error}\n\t{command}")  
 
-# MILESTONE 4 - STATE SYNCHRONIZATION -----------------------------------------------------------------------------------------------------------------------------------------
 def merge_light_state(current_state,hue_update):            # merge partial Hue light update
 
     func_log = f".merge_light_state"
@@ -506,24 +502,23 @@ async def main():
     
     BRIDGE_IP = os.getenv("HUE_BRIDGE_IP")          # load Hue Bridge IP Address environment variable
     APP_KEY = os.getenv("HUE_APP_KEY")              # load Hue Application Key environment variable
-    
-    if not BRIDGE_IP or not APP_KEY:
-        raise ValueError("Mising Hue Configuration in .env")    # throws an error if either Hue IP or Key are missing
 
-    # MILESTONE 1 - GET HUE LIGHTS INFO - JSON RESPONSE ----------------------------------------------------------------------------------------------------------------------
-    hue_lights = await get_hue_lights(BRIDGE_IP,APP_KEY) 
-
-    # MILESTONE 2 - PUBLISH LIGHTS TO MQTT ------------------------------------------------------------------------------------------------------------------------------------
     MQTT_HOST = os.getenv("MQTT_HOST","127.0.0.1")                  # load MQTT Broker Host IP address environment variable
-                                                                    # defaults to 127.0.0.1 if not specified
+                                                                        # defaults to 127.0.0.1 if not specified
     MQTT_PORT = int(os.getenv("MQTT_PORT","1883"))                  # load MQTT Port environment variable
                                                                     # defaults to 1883 if not specified
                                                                     # environment variables are strings, so int() converts it into an integer that is expected by aiomqtt
     
-    # MILESTONE 5 - MQTT LIFECYCLE ---------------------------------------------------------------------------------------------------------------------------------------------
     MQTT_AVAILABILITY_TOPIC = "home/adapter/hue/availability"
     MQTT_ONLINE = "online"
     MQTT_OFFLINE = "offline"
+    
+    if not BRIDGE_IP or not APP_KEY:
+        raise ValueError("Mising Hue Configuration in .env")    # throws an error if either Hue IP or Key are missing
+
+    hue_lights = await get_hue_lights(BRIDGE_IP,APP_KEY) 
+
+    
 
     last_will = aiomqtt.Will(                   # define the message mosquitto should publish if the adapter unexpectedly loses its MQTT connection
         topic=MQTT_AVAILABILITY_TOPIC,
@@ -547,17 +542,10 @@ async def main():
         )
 
         log(f"{func_log} [INFO] hue adapter is online...")
-    
-    # MILESTONE 3 - SUBSCRIBE MQTT TO ADAPTER -----------------------------------------------------------------------------------------------------------------------------------
-    # async with aiomqtt.Client(
-    #    #hostname=MQTT_HOST,
-    #    #port=MQTT_PORT
-    #) as mqtt:
         log(f"{func_log} [INFO] connected to mqtt broker: \n\thost: {MQTT_HOST}\n\tport: {MQTT_PORT}")
 
         known_devices = await publish_lights(mqtt,hue_lights)               # publish each discovered light information and current state to mosquitto
         try:
-    # MILESTONE 4 - LIVE SYNCHRONIZATION ---------------------------------------------------------------------------------------------------------------------------------------- 
             await asyncio.gather(
                 listen_for_commands(mqtt,BRIDGE_IP,APP_KEY,known_devices),     # keep listening for commands
                 listen_for_hue_events(mqtt,BRIDGE_IP,APP_KEY,known_devices)    # keep listening for hue events
