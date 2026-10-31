@@ -285,6 +285,7 @@ async def listen_for_commands(mqtt, bridge_ip, app_key, known_devices):         
                 UnicodeDecodeError,
                 httpx.HTTPError
             ) as error:
+                command = "no command was set" 
                 log(f"{func_log} [ERROR] command failed for {device_id} with \n\t{error}\n\t{command}")  
 
 def merge_light_state(current_state,hue_update):            # merge partial Hue light update
