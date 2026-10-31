@@ -113,3 +113,9 @@ Example - Hue App Turns a light on
 4. Python merges the partial update into the cached state
 5. Python publishes the complete updated state with `retain=True`
 
+## MQTT Device Lifecycle and Availability
+1. Last Will and Testament (LWT): Mosquitto automatically publishes `offline` if the adapter unexpectedly loses its MQTT conenction
+2. Birth Message: The adapter publishes `online` after connecting successfully
+3. Graceful CTRL+C Shutdown: The adapter publishes `offline` before disconnecting normally
+4. Lifecycle verification: Confirm all three behaviors in MQTT explorer 
+
