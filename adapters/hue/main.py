@@ -520,22 +520,57 @@ async def main():
                                                                     # defaults to 1883 if not specified
                                                                     # environment variables are strings, so int() converts it into an integer that is expected by aiomqtt
     
-    # await publish_lights(MQTT_HOST,MQTT_PORT,hue_lights)          # moved below to work with MQTT
+    # MILESTONE 5 - MQTT LIFECYCLE ---------------------------------------------------------------------------------------------------------------------------------------------
+    MQTT_AVAILABILITY_TOPIC = "home/adapter/hue/availability"
+    MQTT_ONLINE = "online"
+    MQTT_OFFLINE = "offline"
 
-    # MILESTONE 3 - SUBSCRIBE MQTT TO ADAPTER -----------------------------------------------------------------------------------------------------------------------------------
+    last_will = aiomqtt.Will(                   # define the message mosquitto should publish if the adapter unexpectedly loses its MQTT connection
+        topic=MQTT_AVAILABILITY_TOPIC,
+        payload=MQTT_OFFLINE,
+        qos=1,
+        retain=True
+    )
+
     async with aiomqtt.Client(
         hostname=MQTT_HOST,
-        port=MQTT_PORT
+        port=MQTT_PORT,
+        will=last_will,
+        keepalive=10
     ) as mqtt:
+
+        await mqtt.publish(
+            MQTT_AVAILABILITY_TOPIC,
+            payload=MQTT_ONLINE,
+            qos=1,
+            retain=True
+        )
+
+        log(f"{func_log} [INFO] hue adapter is online...")
+    
+    # MILESTONE 3 - SUBSCRIBE MQTT TO ADAPTER -----------------------------------------------------------------------------------------------------------------------------------
+    # async with aiomqtt.Client(
+    #    #hostname=MQTT_HOST,
+    #    #port=MQTT_PORT
+    #) as mqtt:
         log(f"{func_log} [INFO] connected to mqtt broker: \n\thost: {MQTT_HOST}\n\tport: {MQTT_PORT}")
 
         known_devices = await publish_lights(mqtt,hue_lights)               # publish each discovered light information and current state to mosquitto
-
+        try:
     # MILESTONE 4 - LIVE SYNCHRONIZATION ---------------------------------------------------------------------------------------------------------------------------------------- 
-        await asyncio.gather(
-            listen_for_commands(mqtt,BRIDGE_IP,APP_KEY,known_devices),     # keep listening for commands
-            listen_for_hue_events(mqtt,BRIDGE_IP,APP_KEY,known_devices)    # keep listening for hue events
-        )
+            await asyncio.gather(
+                listen_for_commands(mqtt,BRIDGE_IP,APP_KEY,known_devices),     # keep listening for commands
+                listen_for_hue_events(mqtt,BRIDGE_IP,APP_KEY,known_devices)    # keep listening for hue events
+            )
+        finally:
+            await mqtt.publish(
+                MQTT_AVAILABILITY_TOPIC,
+                payload=MQTT_OFFLINE,
+                qos=1,
+                retain=True
+            )
+            print("\n")
+            log(f"{func_log} [INFO] hue adapter is offline...")
 
 if __name__ == "__main__":
     try:
