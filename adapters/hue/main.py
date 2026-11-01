@@ -248,7 +248,7 @@ async def find_retained_devices(mqtt, window=1.0):
 
                 try:
                     info = json.loads(message.payload.decode("utf-8"))
-                except:
+                except ValueError:
                     log(f"{func_log} [WARN] bad retained info on {message.topic}")
                     continue
 
@@ -327,7 +327,7 @@ def build_hue_commands(command,device):                                       # 
         if type(brightness) not in (int,float):     # check if brightness is a int or float
             raise ValueError(f"{getTimestamp()} hue-adapter{func_log} [ERROR] brightness must be a number") 
 
-        if brightness <=0 or brightness > 100:     # check if brightness is within range 
+        if not 0 < brightness <= 100:     # check if brightness is within range 
             raise ValueError(f"{getTimestamp()} hue-adapter{func_log} [ERROR] brightness command given is outside of range. acceptable range 0-100%.") 
 
         hue_payload["dimming"] = {       # convert brightness into the Hue API dimming format 
@@ -341,8 +341,6 @@ def build_hue_commands(command,device):                                       # 
         kelvin = command["color_temp_k"]
         if type(kelvin) not in (int, float):
             raise ValueError(f"{getTimestamp()} hue-adapter{func_log} [ERROR] color_temp_k must be a number")
-
-        k_min, k_max = device["color_temp_k_range"]
 
         k_range = device.get("color_temp_k_range")
         if not k_range:
@@ -785,7 +783,7 @@ async def main():
                             listen_for_hue_events(mqtt,BRIDGE_IP,APP_KEY,known_devices)    
                         )
 
-                except asyncio.CancelledError:
+                except BaseException:
                     try:                                    # CTRL+C causes asyncio.run() to cancel the main task, publish offlie while the client is still conencted
                         await mqtt.publish(MQTT_AVAILABILITY_TOPIC,payload=MQTT_OFFLINE,qos=1,retain=True)
                         print("\n")
