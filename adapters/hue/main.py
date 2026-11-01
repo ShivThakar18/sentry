@@ -9,6 +9,14 @@ import json                         #
 
 from datetime import datetime 
 
+# HUE -> CAPABILITY DICTIONARY -----------------------------------------------------------------------------------------------------------------------------------------------
+HUE_TO_CAPABILITY = {
+    "on": "on_off",
+    "dimming": "brightness",
+    "color": "color",
+    "color_temperature": "color_temp"
+}
+
 # LOG HELPER FUNCTION --------------------------------------------------------------------------------------------------------------------------------------------------------
 def getTimestamp():
     return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -73,13 +81,7 @@ def build_device_messages(light):           # Convert Hue API Light resource int
     metadata = light.get("metadata",{})     # get metadata, includes info such as user-assigned name. Empty Dictionary if empty
     name = metadata.get("name",device_id)   # get name from metadata, use device-id if none
     
-    capabilities = []       # create empty list that will contain all the light capabilities
-
-    hue_capabilities = ["on", "dimming", "color", "color_temperature"]       # default hue capabilities 
-
-    for h in hue_capabilities:          # iterate through default capabilities
-        if h in light:                  # if light has this capability
-            capabilities.append(h)      # append to light capability list
+    capabilities = [cap for hue_key, cap in HUE_TO_CAPABILITY.items() if hue_key in light]
 
     # build device information payload
     info = {
@@ -173,7 +175,7 @@ def build_hue_commands(command,capabilities):                                   
 
     if "on" in command:         # translate the on/off control 
 
-        if "on" not in capabilities:            # check if the light supports on/off support 
+        if "on_off" not in capabilities:            # check if the light supports on/off support 
             raise ValueError(f"{getTimestamp()} hue-adapter{func_log} [ERROR] light does not supprot on/off support") 
         
         if not isinstance(command["on"], bool):     # make sure the value is true or false, not string/int
@@ -185,7 +187,7 @@ def build_hue_commands(command,capabilities):                                   
 
     if "brightness" in command:          # translate the brightness control 
 
-        if "dimming" not in capabilities:        # check if brightness control is in capabilities
+        if "brightness" not in capabilities:        # check if brightness control is in capabilities
             raise ValueError(f"{getTimestamp()} hue-adapter{func_log} [ERROR] light does not support brightness control") 
 
         brightness = command["brightness"]          # extract the brightness value from the command
