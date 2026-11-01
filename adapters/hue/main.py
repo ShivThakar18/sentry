@@ -528,38 +528,71 @@ async def main():
         retain=True
     )
 
-    async with aiomqtt.Client(
-        hostname=MQTT_HOST,
-        port=MQTT_PORT,
-        will=last_will,
-        keepalive=10
-    ) as mqtt:
-
-        await mqtt.publish(
-            MQTT_AVAILABILITY_TOPIC,
-            payload=MQTT_ONLINE,
-            qos=1,
-            retain=True
-        )
-
-        log(f"{func_log} [INFO] hue adapter is online...")
-        log(f"{func_log} [INFO] connected to mqtt broker: \n\thost: {MQTT_HOST}\n\tport: {MQTT_PORT}")
-
-        known_devices = await publish_lights(mqtt,hue_lights)               # publish each discovered light information and current state to mosquitto
+    while True:
         try:
-            await asyncio.gather(
-                listen_for_commands(mqtt,BRIDGE_IP,APP_KEY,known_devices),     # keep listening for commands
-                listen_for_hue_events(mqtt,BRIDGE_IP,APP_KEY,known_devices)    # keep listening for hue events
-            )
-        finally:
-            await mqtt.publish(
-                MQTT_AVAILABILITY_TOPIC,
-                payload=MQTT_OFFLINE,
-                qos=1,
-                retain=True
-            )
-            print("\n")
-            log(f"{func_log} [INFO] hue adapter is offline...")
+
+            async with aiomqtt.Client(
+                hostname=MQTT_HOST,
+                port=MQTT_PORT,
+                will=last_will,
+                keepalive=10
+            ) as mqtt:
+
+                log(f"{func_log} [INFO] connected to mqtt broker: \n\thost: {MQTT_HOST}\n\tport: {MQTT_PORT}")
+
+                hue_lights = await get_hue_lights(BRIDGE_IP,APP_KEY)
+                known_devices = await publish_lights(mqtt,hue_lights)               # publish each discovered light information and current state to mosquitto
+
+                await mqtt.publish(
+                    MQTT_AVAILABILITY_TOPIC,
+                    payload=MQTT_ONLINE,
+                    qos=1,
+                    retain=True
+                )
+
+                log(f"{func_log} [INFO] hue adapter is online...")
+
+                try:
+                    
+                    async with asyncio.TaskGroup() as tasks:                            # TaskGroup ensure that if either fails, the other is cancelled and awaited as well
+                        tasks.create_task(              # keep listening for commands
+                            listen_for_commands(        
+                                mqtt,
+                                BRIDGE_IP,
+                                APP_KEY,
+                                known_devices
+                                ),    
+                        )
+
+                        tasks.create_task(              # keep listening for hue events
+                            listen_for_hue_events(
+                                mqtt,
+                                BRIDGE_IP,
+                                APP_KEY,
+                                known_devices
+                                )    
+                        )
+
+                except asyncio.CancelledError:
+                    try:                                    # CTRL+C causes asyncio.run() to cancel the main task, publish offlie while the client is still conencted
+                        await mqtt.publish(
+                            MQTT_AVAILABILITY_TOPIC,
+                            payload=MQTT_OFFLINE,
+                            qos=1,
+                            retain=True
+                        )
+                        print("\n")
+                        log(f"{func_log} [INFO] hue adapter is offline...")
+                    except:
+                        log(f"{func_log} [ERROR] could not publish offline: mqtt connection unavailable")
+
+                    raise       # preserve cancellation so hte application actually shuts down. 
+
+        except* aiomqtt.MqttError as errors:
+            log(f"{func_log} [ERROR] mqtt connection lost \n\t{errors}")
+
+        log(f"{func_log} [INFO] retrying mqtt connection in 5 seconds...")
+        await asyncio.sleep(5)
 
 if __name__ == "__main__":
     try:
