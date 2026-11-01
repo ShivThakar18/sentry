@@ -14,7 +14,7 @@ HUE_TO_CAPABILITY = {
     "on": "on_off",
     "dimming": "brightness",
     "color": "color_xy",
-    "color_temperature": "color_temp"
+    "color_temperature": "color_temp_k"
 }
 
 AVAILABLE_STATUSES = {"connected"}
@@ -86,7 +86,7 @@ async def get_hue_rooms(bridge_ip, app_key):
             if child.get("rtype") == "device" and child.get("rid"):
                 rooms[child["rid"]] = room_name
 
-    log(f"{func_log} [INFO] found {len(room)} devices assigned to rooms")
+    log(f"{func_log} [INFO] found {len(rooms)} devices assigned to rooms")
 
     return rooms
 
@@ -194,7 +194,7 @@ async def publish_device(mqtt, light, connectivity, rooms, known_devices):
                                                                                     # device ID, information payload, and state payload
                                                                                     # this seprates Hue-specific data from the MQTT logic
 
-    state["available"] = connectivity.get("owner_rid") in AVAILABLE_STATUSES
+    state["available"] = connectivity.get(owner_rid) in AVAILABLE_STATUSES
 
     known_devices[device_id] = {
         "light_id": light["id"],
@@ -231,6 +231,39 @@ async def remove_device(mqtt,device_id,known_devices):          # clear a delete
     known_devices.pop(device_id,None)
 
     log(f"{func_log} [INFO] removed: {device_id}")
+
+async def find_retained_devices(mqtt, window=1.0):
+    func_log = f".find_retained_devices"
+
+    topic = "home/device/+/info"
+    found = set()
+
+    await mqtt.subscribe(topic,qos=1)       # retained info messages are delivered right after subscribing
+
+    try:
+        async with asyncio.timeout(window):
+            async for message in mqtt.messages:
+                if not message.payload:
+                    continue
+
+                try:
+                    info = json.loads(message.payload.decode("utf-8"))
+                except:
+                    log(f"{func_log} [WARN] bad retained info on {message.topic}")
+                    continue
+
+                if not isinstance(info,dict) or info.get("adapter") != "hue":
+                    continue
+
+                found.add(str(message.topic).split("/")[2])
+    except TimeoutError:
+        pass
+    finally:
+        await mqtt.unsubscribe(topic)
+
+    log(f"{func_log} [INFO] found {len(found)} retained hue devices")
+
+    return found
 
 async def publish_lights(mqtt,lights, connectivity, rooms):        # Connect to Mosquitto and publish two retained MQTT messages for every Hue Light:
                                                             #
@@ -302,7 +335,7 @@ def build_hue_commands(command,device):                                       # 
         }
 
     if "color_temp_k" in command:
-        if "color_temp" not in capabilities:
+        if "color_temp_k" not in capabilities:
             raise ValueError(f"{getTimestamp()} hue-adapter{func_log} [ERROR] light does not support color temperature")
 
         kelvin = command["color_temp_k"]
@@ -394,7 +427,7 @@ async def listen_for_commands(mqtt, bridge_ip, app_key, known_devices):         
 
             topic_parts = str(message.topic).split("/")        # split the MQTT topic
 
-            if len(topic_parts) != 4:           # skip message if topic_parts does not = 4 
+            if len(topic_parts) != 4 or topic_parts[3] != "set":           # skip message if topic_parts does not = 4 
                 continue
 
             device_id = topic_parts[2]          # extract device_id
@@ -409,7 +442,6 @@ async def listen_for_commands(mqtt, bridge_ip, app_key, known_devices):         
 
             device = known_devices[device_id]       # retreive stored information for the device. known_devices maps MQTT device IDs to Hue device details
             light_id = device["light_id"]           # get the actual Hue resource ID used by the Hue API
-            capabilities = device["capabilities"]   # get the support features
 
             command = None
 
@@ -604,7 +636,7 @@ async def process_hue_events(mqtt,events,known_devices,bridge_ip,app_key):    # 
                     await handle_light_update(mqtt,resource,known_devices)
                 elif event_type == "add":
                     await handle_light_add(mqtt,resource,known_devices,bridge_ip,app_key)
-                elif event_type == "remove":
+                elif event_type == "delete":
                     await handle_light_delete(mqtt,resource,known_devices)
             elif resource_type == "zigbee_connectivity" and event_type == "update":
                 await handle_connectivity_update(mqtt,resource,known_devices)
@@ -728,9 +760,15 @@ async def main():
 
                 hue_lights = await get_hue_lights(BRIDGE_IP,APP_KEY)
                 connectivity = await get_hue_connectivity(BRIDGE_IP,APP_KEY)
-                known_devices = await publish_lights(mqtt,hue_lights,connectivity)      # publish each discovered light information and current state to mosquitto
                 rooms = await get_hue_rooms(BRIDGE_IP,APP_KEY)
+
+                retained_ids = await find_retained_devices(mqtt)
+                bridge_ids = {f"hue-{light["id"]}" for light in hue_lights}
+
                 known_devices = await publish_lights(mqtt,hue_lights,connectivity,rooms)
+
+                for device_id in retained_ids - bridge_ids: 
+                    await remove_device(mqtt,device_id,known_devices)
             
                 await mqtt.publish(MQTT_AVAILABILITY_TOPIC,payload=MQTT_ONLINE,qos=1,retain=True)
 
@@ -752,7 +790,7 @@ async def main():
                         await mqtt.publish(MQTT_AVAILABILITY_TOPIC,payload=MQTT_OFFLINE,qos=1,retain=True)
                         print("\n")
                         log(f"{func_log} [INFO] hue adapter is offline...")
-                    except:
+                    except aiomqtt.MqttError:
                         log(f"{func_log} [ERROR] could not publish offline: mqtt connection unavailable")
 
                     raise       # preserve cancellation so hte application actually shuts down. 
