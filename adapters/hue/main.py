@@ -516,11 +516,7 @@ async def main():
     
     if not BRIDGE_IP or not APP_KEY:
         raise ValueError("Mising Hue Configuration in .env")    # throws an error if either Hue IP or Key are missing
-
-    hue_lights = await get_hue_lights(BRIDGE_IP,APP_KEY) 
-
     
-
     last_will = aiomqtt.Will(                   # define the message mosquitto should publish if the adapter unexpectedly loses its MQTT connection
         topic=MQTT_AVAILABILITY_TOPIC,
         payload=MQTT_OFFLINE,
@@ -588,8 +584,8 @@ async def main():
 
                     raise       # preserve cancellation so hte application actually shuts down. 
 
-        except* aiomqtt.MqttError as errors:
-            log(f"{func_log} [ERROR] mqtt connection lost \n\t{errors}")
+        except* (aiomqtt.MqttError, httpx.HTTPError) as errors:
+            log(f"{func_log} [ERROR] mqtt or hue bridge connection failed \n\t{errors}")
 
         log(f"{func_log} [INFO] retrying mqtt connection in 5 seconds...")
         await asyncio.sleep(5)
