@@ -13,7 +13,7 @@ from datetime import datetime
 HUE_TO_CAPABILITY = {
     "on": "on_off",
     "dimming": "brightness",
-    "color": "color",
+    "color": "color_xy",
     "color_temperature": "color_temp"
 }
 
@@ -24,6 +24,14 @@ def getTimestamp():
 def log(message):
     print(f"{getTimestamp()} hue-adapter{message}")
 
+# CONVERSION HELPERS ---------------------------------------------------------------------------------------------------------------------------------------------------------
+def kelvin_to_mirek(kelvin):
+    return round(1_000_000 / kelvin)
+
+def mirek_to_kelvin(mirek):
+    return round(1_000_000 / mirek)
+
+# HUE ADAPTERS FUNCTION ------------------------------------------------------------------------------------------------------------------------------------------------------
 async def get_hue_lights(bridge_ip, app_key):
 
     func_log = f".get_hue_lights"
@@ -82,14 +90,17 @@ def build_device_messages(light):           # Convert Hue API Light resource int
     name = metadata.get("name",device_id)   # get name from metadata, use device-id if none
     
     capabilities = [cap for hue_key, cap in HUE_TO_CAPABILITY.items() if hue_key in light]
+    limits = {}
 
     # build device information payload
     info = {
         "id":device_id,
         "name":name,
         "manufacturer":"Philips Hue",
+        "adapter":"hue",
         "type":"light",
-        "capabilities":capabilities
+        "capabilities":capabilities,
+        **limits
     }
 
     state = {}          # create a dictionary with light's current state
@@ -102,12 +113,16 @@ def build_device_messages(light):           # Convert Hue API Light resource int
         state["brightness"] = light["dimming"]["brightness"]                    # preserved value from hue from a scale of 0-100%
 
     if "color" in light:                                                        # get current light color
-        state["color"] = light["color"].get("xy")                               # Hue uses the CIE XY Color Space rather than RGB, this is preserved and converted later
+        state["color_xy"] = light["color"].get("xy")                            # Hue uses the CIE XY Color Space rather than RGB, this is preserved and converted later
 
-    if "color_temperature" in light:                                            # get current color temperature
-        state["color_temperature"] = light["color_temperature"].get("mirek")    # Hue uses "mirek" (micro reciprocal kelvin)
-                                                                                # lower mirek = cooler white, higher mirek = warmer white
-                                                                                # converted later, original mirek is perserved
+    if "color_temperature" in light:                                        # get current color temperature
+        mirek = light["color_temperature"].get("mirek")                     # Hue uses "mirek" (micro reciprocal kelvin)
+        state["color_temp_k"] = mirek_to_kelvin(mirek) if mirek else None   # lower mirek = cooler white, higher mirek = warmer white                                                         
+        schema = light["color_temperature"].get("mirek_schema",{})
+        mirek_min = schema.get("mirek_minimum",153)
+        mirek_max = schema.get("mirek_maximum",500)
+        limits["color_temp_k_range"] = [mirek_to_kelvin(mirek_max),mirek_to_kelvin(mirek_min)]
+
 
     return device_id, info, state 
 
@@ -132,6 +147,7 @@ async def publish_lights(mqtt,lights):      # Connect to Mosquitto and publish t
         known_devices[device_id] = {
             "light_id": light["id"],
             "capabilities": info["capabilities"],
+            "color_temp_k_range": info.get("color_temp_k_range"),
             "state": state.copy()
         }
 
@@ -155,7 +171,7 @@ async def publish_lights(mqtt,lights):      # Connect to Mosquitto and publish t
 
     return known_devices
 
-def build_hue_commands(command,capabilities):                                       # Convert an MQTT command into a Hue API v2 payload. 
+def build_hue_commands(command,device):                                       # Convert an MQTT command into a Hue API v2 payload. 
 
     func_log = f".build_hue_commands"
     
@@ -165,13 +181,18 @@ def build_hue_commands(command,capabilities):                                   
     if not command:                         # MQTT commands cannot be empty
         raise ValueError(f"{getTimestamp()} hue-adapter{func_log} [ERROR] command cannot be empty")
 
-    hue_payload = {}            # create an empty dict for the Hue API payload 
 
-    allowed_fields = {"on","brightness"}        # only accepts fields the adapter understands
-    unknown = set(command) - allowed_fields     # finds fields in the command that are not allowed
+    capabilities = device["capabilities"]
+    allowed_fields = {"on","brightness","color_xy","color_temp_k"}        # only accepts fields the adapter understands
+    unknown = set(command) - allowed_fields                               # finds fields in the command that are not allowed
 
     if unknown:     # reject commands containing unsupported fields 
         raise ValueError(f"{getTimestamp()} hue-adapter{func_log} [ERROR] unsupported fields: {unknown}")
+
+    if "color_xy" in command and "color_temp_k" in command: 
+        raise ValueError(f"{getTimestamp()} hue-adapter{func_log} [ERROR] send color_xy or color_temp_k, not both")
+
+    hue_payload = {}            # create an empty dict for the Hue API payload 
 
     if "on" in command:         # translate the on/off control 
 
@@ -201,6 +222,39 @@ def build_hue_commands(command,capabilities):                                   
         hue_payload["dimming"] = {       # convert brightness into the Hue API dimming format 
             "brightness": brightness
         }
+
+    if "color_temp_k" in command:
+        if "color_temp" not in capabilities:
+            raise ValueError(f"{getTimestamp()} hue-adapter{func_log} [ERROR] light does not support color temperature")
+
+        kelvin = command["color_temp_k"]
+        if type(kelvin) not in (int, float):
+            raise ValueError(f"{getTimestamp()} hue-adapter{func_log} [ERROR] color_temp_k must be a number")
+
+        k_min, k_max = device["color_temp_k_range"]
+        if not k_min <= kelvin <= k_max:
+            raise ValueError(f"{getTimestamp()} hue-adapter{func_log} [ERROR] color temperature (color_temp_k) not in range")
+
+        hue_payload["color_temperature"] = {
+            "mirek": kelvin_to_mirek(kelvin)
+        }
+
+    if "color_xy" in command:
+        if "color_xy" not in capabilities:
+            raise ValueError(f"{getTimestamp()} hue-adapter{func_log} [ERROR] light doesn't support color")
+        xy = command["color_xy"]
+
+        if not isinstance(xy,dict) or set(xy) != {"x","y"}:
+            raise ValueError(f"{getTimestamp()} hue-adapter{func_log} [ERROR] color_xy must be x: .. y: ..")
+        for axis in ("x", "y"):
+            if type(xy[axis]) not in (int,float) or not 0 <= xy[axis] <= 1:
+                raise ValueError(f"{getTimestamp()} hue-adapter{func_log} [ERROR] color_xy.{axis} must be a number 0-1")
+        hue_payload["color"] = {
+            "xy": {
+                "x":xy["x"],
+                "y":xy["y"]
+                }
+            }
 
     return hue_payload
 
@@ -276,7 +330,7 @@ async def listen_for_commands(mqtt, bridge_ip, app_key, known_devices):         
                 payload_text = message.payload.decode("utf-8")                                  # MQTT arrives in bytes, decode them into UTF-8 string
                 command = json.loads(payload_text)                                              # parse the JSON string into a Python object
 
-                hue_payload = build_hue_commands(command,capabilities)                       # validate the command and convert it into the formated expected by Hue API v2
+                hue_payload = build_hue_commands(command,device)                       # validate the command and convert it into the formated expected by Hue API v2
                 log(f"{func_log} [DEBUG] command received for {device_id}\n\t{command}")                   
 
                 await send_hue_command(http_client,bridge_ip,app_key,light_id,hue_payload)      # send an HTTP PUT request to the Hue Bridge
@@ -317,11 +371,10 @@ def merge_light_state(current_state,hue_update):            # merge partial Hue 
     if "color" in hue_update:                                   # check if color is changed in hue update  
         xy = hue_update["color"].get("xy")                      # extract the xy color characteristics from the hue update
 
-        if xy is not None:                                      # verify xy is not empty / None
-            if current_state.get("color") != xy:                # compare the new value with the current MQTT state; only update if the values are different
-                current_state["color"] = xy                     # if true, set current_state to update
-                changed = True                                  # and update changed flag to True
-                log(f"{func_log} [DEBUG] xy value changed to: {xy}")
+        if xy is not None and current_state.get("color_xy") != xy:      # verify xy is not empty / None; compare the new value with the current MQTT state; only update if the values are different
+            current_state["color_xy"] = xy                              # if true, set current_state to update
+            changed = True                                              # and update changed flag to True
+            log(f"{func_log} [DEBUG] xy value changed to: {xy}")
 
     if "color_temperature" in hue_update:                       # check if color_temperature is changed in hue update
         mirek = hue_update["color_temperature"].get("mirek")    # extract the mirek color temp characteristics from the hue update
