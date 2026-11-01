@@ -516,11 +516,7 @@ async def main():
     
     if not BRIDGE_IP or not APP_KEY:
         raise ValueError("Mising Hue Configuration in .env")    # throws an error if either Hue IP or Key are missing
-
-    hue_lights = await get_hue_lights(BRIDGE_IP,APP_KEY) 
-
     
-
     last_will = aiomqtt.Will(                   # define the message mosquitto should publish if the adapter unexpectedly loses its MQTT connection
         topic=MQTT_AVAILABILITY_TOPIC,
         payload=MQTT_OFFLINE,
