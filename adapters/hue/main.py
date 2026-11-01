@@ -510,7 +510,7 @@ async def main():
                                                                     # defaults to 1883 if not specified
                                                                     # environment variables are strings, so int() converts it into an integer that is expected by aiomqtt
     
-    MQTT_AVAILABILITY_TOPIC = "home/adapter/hue/availability"
+    MQTT_AVAILABILITY_TOPIC = "home/adapter/hue/status"
     MQTT_ONLINE = "online"
     MQTT_OFFLINE = "offline"
     
