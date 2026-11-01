@@ -397,3 +397,6 @@ deploy/*.log
 # Ignore temporary files
 *.tmp
 *.bak
+
+# ignore this file - sensitive data
+get_hue.sh
