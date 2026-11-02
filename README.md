@@ -20,5 +20,6 @@ SENTRY is a custom solution where I have control on
   - Ecobee Thermostats
 
  # Overview of Architecture 
- 
- 
+ ## Mosquitto Broker
+
+ ## Hardware - Raspberry Pi 
