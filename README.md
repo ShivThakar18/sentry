@@ -19,7 +19,9 @@ SENTRY is a custom solution where I have control on
   - Eufy Doorbell
   - Ecobee Thermostats
 
- # Overview of Architecture 
- ## Mosquitto Broker
+# Overview of Architecture 
+## Mosquitto Broker
 
- ## Hardware - Raspberry Pi 
+## Device Adapters
+
+## Hardware - Raspberry Pi 
