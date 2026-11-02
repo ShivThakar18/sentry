@@ -24,8 +24,6 @@ def publish_command(command):
         port=MQTT_PORT,
     )
 
-    
-
 def str_to_bool(s):
     s = s.lower()
     if s in ("true","1","on"):
@@ -84,8 +82,8 @@ def main():
         print("you cant change color temp and color at the same time")
         return
     
-    buildJson(data)
-
+    json_payload = buildJson(data)
+    publish_command(json_payload)
 
 if __name__ == "__main__":
     main()
