@@ -38,7 +38,7 @@ def set_pub(args):
             payload[fields[i]] = d
         i+=1
     print(data)
-    print(payload)
+    print(json.dumps(payload))
     
     load_dotenv(dotenv_path="hue/.env")
     
@@ -46,10 +46,10 @@ def set_pub(args):
     MQTT_PORT = int(os.getenv("MQTT_PORT","1883")) 
     
     
-    device_id = "<insert-id>" # i will hardcode later
+    device_id = "" # i will hardcode later
     
-    MQTT_TOPIC = f"home/adapter/hue/{device_id}/set"
-
+    MQTT_TOPIC = f"home/device/{device_id}/set"
+    print(MQTT_HOST,MQTT_PORT,MQTT_TOPIC)
     publish.single(
         MQTT_TOPIC,
         payload=json.dumps(payload),
