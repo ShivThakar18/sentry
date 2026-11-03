@@ -20,6 +20,8 @@ SENTRY is a custom solution where I have control on
   - Ecobee Thermostats
 
 # Overview of Architecture 
+<img width="650" height="647" alt="image" src="https://github.com/user-attachments/assets/ab763d0e-d37a-4d28-bce3-d42d142316b0" />
+
 ## Mosquitto Broker
 
 ## Device Adapters
