@@ -23,7 +23,7 @@ def getTimestamp():
     return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
 def log(message):
-    print(f"{getTimestamp()} hue-adapter{message}")
+    print(f"{getTimestamp()} hue-adapter{message}",flush=True)
 
 # CONVERSION HELPERS ---------------------------------------------------------------------------------------------------------------------------------------------------------
 def kelvin_to_mirek(kelvin):
@@ -735,7 +735,7 @@ async def main():
     BRIDGE_IP = os.getenv("HUE_BRIDGE_IP")          # load Hue Bridge IP Address environment variable
     APP_KEY = os.getenv("HUE_APP_KEY")              # load Hue Application Key environment variable
 
-    MQTT_HOST = os.getenv("MQTT_HOST","127.0.0.1")                  # load MQTT Broker Host IP address environment variable
+    MQTT_HOST = os.getenv("MQTT_HOST","localhost")                  # load MQTT Broker Host IP address environment variable
                                                                         # defaults to 127.0.0.1 if not specified
     MQTT_PORT = int(os.getenv("MQTT_PORT","1883"))                  # load MQTT Port environment variable
                                                                     # defaults to 1883 if not specified
@@ -794,7 +794,7 @@ async def main():
                     raise       # preserve cancellation so hte application actually shuts down. 
 
         except* (aiomqtt.MqttError, httpx.HTTPError) as errors:
-            log(f"{func_log} [ERROR] mqtt or hue bridge connection failed \n\t{errors}")
+            log(f"{func_log} [ERROR] mqtt or hue bridge connection failed \n\t{errors}\n\tMQTT: {MQTT_HOST}:{MQTT_PORT}")
 
         log(f"{func_log} [INFO] retrying mqtt connection in 5 seconds...")
         await asyncio.sleep(5)
