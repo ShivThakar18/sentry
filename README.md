@@ -42,13 +42,13 @@ One small service for each device type. An adapter talks to the vendor's API and
 | Eufy doorbell | 📋 | Doorbell pop-up comes later |
 | Smart plugs | 📋 | Try `tinytuya` first, otherwise switch to Kasa/Tapo |
 
-### FastAPI Core 
+### FastAPI Core 📋
 A FastAPI service that holds the device registry (rooms, names), scenes and automations. It's the **only** publisher of `set`, so the UI never talks MQTT directly.
 
-### Touch UI
+### Touch UI 📋
 A React app running in Chromium kiosk mode on the Pi's 7" display. It talks to the core over HTTP/WebSocket.
 
-### Dev CLI
+### Dev CLI 🚧
 `adapters/send_mqtt.py` (rename file LOL) is a debugging helper with `watch`, `list`, `set` and `status`. It's dev-only: it publishes `set` directly, which skips the core on purpose.
 
 ## Repository Structure 
