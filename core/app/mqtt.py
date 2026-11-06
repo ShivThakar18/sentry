@@ -31,7 +31,3 @@ async def mqtt_loop(app) -> None:               # will run forever, conenct, sub
             app.state.mqtt = None
             log.warning("MQTT Lost (%s): retrying in 3 seconds", e)
             await asyncio.sleep(3)
-
-
-
-    return 
