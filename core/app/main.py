@@ -10,6 +10,8 @@ from .mqtt import mqtt_loop
 
 logging.basicConfig(level=logging.INFO)
 
+# uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     app.state.mqtt = None                           # runs at startup before first request

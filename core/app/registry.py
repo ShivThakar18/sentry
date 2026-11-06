@@ -18,3 +18,24 @@ class Registry:
     def handle(self,topic: str, payload: bytes) -> None:
         parts = topic.split("/")
 
+    # HANDLERS -------------------------------------------------------------------
+    def _on_status(self, adapter: str, payload: bytes) -> None:
+
+        return
+
+    def _on_info(self,device_id: str, payload: bytes) -> None:
+
+        return
+
+    def _on_state(self,device_id: str, payload: bytes) -> None:
+        
+        return
+
+    def _on_event(self,device_id: str, payload: bytes) -> None:
+        
+        return
+
+    # QUERIES ---------------------------------------------------------------------
+    def usable(self, device_id: str) -> bool:
+
+        return
