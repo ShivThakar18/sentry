@@ -20,6 +20,6 @@ async def list_devices(request: Request):
     reg = request.app.state.registry
     return [to_out(reg,d) for d in reg.devices.values()]
 
-@router.get("/devices/{device_id}", response_model=list[DeviceOut])
+@router.get(f"/devices/{device_id}", response_model=list[DeviceOut])
 async def get_device(device_id: str, request: Request):
     return
