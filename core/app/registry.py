@@ -102,12 +102,37 @@ class Registry:
         self._emit_device(dev)        
 
     def _on_state(self,device_id: str, payload: bytes) -> None:
+        dev = self.devices.setdefault(device_id, Device(id=device_id))
+
+        if not payload:     # empty info to remove device
+            new_state: dict[str, Any] = {}
+        else:
+            parsed = self._parse_object(device_id,"state",payload)
+            if parsed is None:
+                return
+            new_state = parsed
         
-        return
+        if dev.state == new_state
+            return
+
+        dev.state = new_state
+
+        if dev.complete:
+            self._emit_devices(dev)
 
     def _on_event(self,device_id: str, payload: bytes) -> None:
-        
-        return
+        event = self._parse_object(device_id, "event", payload)
+        if event is None:
+            return
+        if "type" not in device:
+            log.warning(f"device {device_id} event without type, ignoring: {event}")
+            return
+
+        self._emit({
+            "type": "event",
+            "id": device_id,
+            "event": event
+        })
 
     # QUERIES ---------------------------------------------------------------------
     def usable(self, device_id: str) -> bool:          # the adapter is online and state.available is true
