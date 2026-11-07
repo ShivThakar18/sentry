@@ -23,7 +23,6 @@ class Device:
     def adapter(self) -> str | None:
         return self.info.get("adapter")
 
-
 class Registry:
     def __init__(self, on_change: Callable[[dict],None] | None = None):
         self.devices: dict[str, Device] = {}
@@ -78,7 +77,7 @@ class Registry:
 
         if not payload:     # empty payload = retained deleted
 
-            removed = self.device.pop(device_id,None)
+            removed = self.devices.pop(device_id,None)
             if removed and removed.complete:
                 log.info(f"device {device_id} removed")
                 self._emit({
@@ -99,7 +98,7 @@ class Registry:
             return              # retained duplicate
 
         dev.info = info
-        self._emit_device(dev)        
+        self._emit_devices(dev)        
 
     def _on_state(self,device_id: str, payload: bytes) -> None:
         dev = self.devices.setdefault(device_id, Device(id=device_id))
@@ -112,7 +111,7 @@ class Registry:
                 return
             new_state = parsed
         
-        if dev.state == new_state
+        if dev.state == new_state:
             return
 
         dev.state = new_state
@@ -124,7 +123,7 @@ class Registry:
         event = self._parse_object(device_id, "event", payload)
         if event is None:
             return
-        if "type" not in device:
+        if "type" not in event:
             log.warning(f"device {device_id} event without type, ignoring: {event}")
             return
 
@@ -141,14 +140,14 @@ class Registry:
         if dev is None or not dev.complete:
             return False
         
-        adapater_online = self.adapters.get(dev.adapter or "") == "online"
+        adapter_online = self.adapters.get(dev.adapter or "") == "online"
 
         return adapter_online and dev.state.get("available") is True
 
     def to_dict(self, device_id: str) -> dict[str,Any] | None:
         
         dev = self.devices.get(device_id)
-        if device is None or not dev.complete:
+        if dev is None or not dev.complete:
             return None
 
         info = dev.info
@@ -169,7 +168,7 @@ class Registry:
     # HELPERS ---------------------------------------------------------------------
     def _emit_devices(self, dev: Device) -> None:
         self._emit({
-            "type": "adapters",
+            "type": "device",
             "device": self.to_dict(dev.id)
         })
     

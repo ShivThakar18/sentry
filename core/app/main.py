@@ -7,6 +7,8 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from .mqtt import mqtt_loop
+from .api import router 
+from .registry import Registry
 
 logging.basicConfig(level=logging.INFO)
 
@@ -14,6 +16,7 @@ logging.basicConfig(level=logging.INFO)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    app.state.registry = Registry()
     app.state.mqtt = None                           # runs at startup before first request
     task = asyncio.create_task(mqtt_loop(app))      # start task
     yield                                           # app serves requests here
@@ -24,6 +27,6 @@ async def lifespan(app: FastAPI):
         await task
 
 app = FastAPI(title="SENTRY Core", lifespan=lifespan)          # the AGIS app object 
-
+app.include_router(router)
 
 
