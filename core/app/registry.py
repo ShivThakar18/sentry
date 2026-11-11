@@ -160,6 +160,7 @@ class Registry:
             "limits": {k: v for k, v in info.items() if k.endswith("_range")},
             "state": dict(dev.state),
             "usable": self.usable(dev.id)
+            "manufacturer": info.get("manufacturer","")
         }
     
     def snapshot(self) -> list[dict[str, Any]]:     # for every complete device, for GET /devices and the Websocket snapshot
