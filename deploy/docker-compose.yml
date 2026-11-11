@@ -1,7 +1,7 @@
 services:
   mosquitto:
     image: eclipse-mosquitto:2
-    container_name: smart-home-mosquitto
+    container_name: sentry-mqtt
     restart: unless-stopped
 
     ports:
@@ -21,6 +21,28 @@ services:
     depends_on:
       - mosquitto
     restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "5m"
+        max-file: "3"
+
+  core:
+    build: ../core
+    container_name: core
+    environment:
+      MQTT_HOST: mosquitto
+      MQTT_CLIENT_ID: "sentry-core-pi"
+    ports:
+      - "8000:8000"
+    depends_on:
+      - mosquitto
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD","python","-c","import urllib.request;urllib.request.urlopen('http://localhost:8000/health',timeout=3)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
     logging:
       driver: json-file
       options:
