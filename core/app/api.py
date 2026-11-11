@@ -36,6 +36,7 @@ class DeviceOut(BaseModel):
     limits: dict[str, Any]
     state: dict
     usable: bool
+    manufacturer: str
 
 # READ ROUTES --------------------------------------------------------------------------------------------
 # response_model makes FastAPI:

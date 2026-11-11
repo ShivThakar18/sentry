@@ -29,8 +29,8 @@ async def lifespan(app: FastAPI):
         await task
 
 app = FastAPI(title="SENTRY Core", lifespan=lifespan)          # the AGIS app object 
-app.include_router(api_router)      # HTTP routes (api.py)
-app.include_router(ws_router)       # /ws (ws.py)
+app.include_router(api_router, prefix="/api")      # HTTP routes (api.py)
+app.include_router(ws_router, prefix="/api")       # /ws (ws.py)
 
 
 @app.get("/health")
