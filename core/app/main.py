@@ -33,3 +33,6 @@ app.include_router(api_router)      # HTTP routes (api.py)
 app.include_router(ws_router)       # /ws (ws.py)
 
 
+@app.get("/health")
+async def health():
+    return {"ok",True}
