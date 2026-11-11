@@ -28,7 +28,7 @@ services:
         max-file: "3"
 
   core:
-    build: ./core
+    build: ../core
     container_name: core
     environment:
       MQTT_HOST: mosquitto
