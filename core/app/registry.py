@@ -159,7 +159,7 @@ class Registry:
             "capabilities": list(info.get("capabilities",[])),
             "limits": {k: v for k, v in info.items() if k.endswith("_range")},
             "state": dict(dev.state),
-            "usable": self.usable(dev.id)
+            "usable": self.usable(dev.id),
             "manufacturer": info.get("manufacturer","")
         }
     

@@ -54,7 +54,7 @@ def test_list_and_get(env):
     assert r.json()[0]["name"] == "Kitchen Lamp"
     assert client.get("/devices/hue-1").json()["usable"] is True
     assert client.get("/devices/nope").status_code == 404
-
+    assert client.get("/devices/hue-1").json()["manufacturer"] == "Philips Hue"
 
 def test_set_publishes_partial_payload(env):
     client, app, _ = env

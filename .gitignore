@@ -401,5 +401,4 @@ deploy/*.log
 # ignore this file - sensitive data
 get_hue.sh
 
-=
-naming
+*.code-workspace
