@@ -1,31 +1,30 @@
-/* ============ Design tokens (taken from HQ-DARK.svg) ============ */
-:root{
-  --bg:#1E1E1E;          /* screen background */
-  --ink:#0088FF;         /* text + icons */
-  --ink-2:rgba(0,136,255,.62);
-  --ink-3:rgba(0,136,255,.38);
-  --off:rgba(15,15,18,.88);   /* inactive glass fill (#0F0F12) */
-  --on:rgba(19,0,187,.72);    /* active glass fill (#1300BB) */
-  --radius:20px;
-}
-*{box-sizing:border-box;margin:0;padding:0}
-html,body{background:#111;color:var(--ink);font-family:"Krona One",sans-serif}
-body{padding:32px 16px 64px}
-.gallery{display:flex;flex-direction:column;alignpn-items:center;gap:40px}
-.caption{width:800px;max-width:100%;font-size:12px;color:#7a8799;line-height:1.7;margin-bottom:-28px}
-.caption b{color:#cfd8e3;font-weight:400;font-size:14px;display:block}
+/*
+ * tokens.css: the design system, taken from the :root block in mockups/sentry-ui.html.
+ *
+ * Rule: components use these variables only, never a raw colour like #0088FF.
+ * Then a theme change (a light mode, a different accent) is an edit to this one file.
+ */
+:root {
+  /* ---- colour ---- */
+  --bg: #1e1e1e;                    /* screen background */
+  --ink: #0088ff;                   /* text + icons */
+  --ink-2: rgba(0, 136, 255, 0.62); /* secondary text (status lines) */
+  --ink-3: rgba(0, 136, 255, 0.38); /* faint text, inactive knobs */
+  --off: rgba(15, 15, 18, 0.88);    /* glass fill, inactive */
+  --on: rgba(19, 0, 187, 0.72);     /* glass fill, active ("lit") */
+  --on-glow: rgba(19, 0, 187, 0.35);
 
-/* ============ Liquid glass ============ */
-.glass{position:relative;background:var(--off);border-radius:var(--radius);
-  box-shadow:0 0 12px rgba(0,0,0,.15),0 8px 24px rgba(0,0,0,.35),
-    inset 2px 2px 3px rgba(255,255,255,.10),inset -1px -1px 2px rgba(255,255,255,.05);
-  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
-.glass::before{content:"";position:absolute;inset:0;border-radius:inherit;padding:1px;pointer-events:none;
-  background:conic-gradient(from 90deg,rgba(140,200,255,.20),rgba(140,200,255,.42) 43deg,rgba(255,255,255,0) 133deg,
-    rgba(140,200,255,.42) 223deg,rgba(255,255,255,0) 313deg,rgba(140,200,255,.20));
-  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;
-  mask:linear-gradient(#000 0 0) content-box exclude,linear-gradient(#000 0 0)}
-.glass::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;
-  background:linear-gradient(170deg,rgba(255,255,255,.07),rgba(255,255,255,0) 45%)}  /* specular sheen */
-.glass.on{background:var(--on);box-shadow:0 0 18px rgba(19,0,187,.35),0 8px 24px rgba(0,0,0,.35),
-    inset 2px 2px 3px rgba(255,255,255,.18),inset -1px -1px 2px rgba(255,255,255,.08)}
+  /* ---- shape ---- */
+  --radius: 20px;                   /* default glass corner */
+
+  /* ---- type ---- */
+  --font: "Krona One", sans-serif;
+
+  /* ---- layout (the mockup's fixed positions, 800×450 screen) ---- */
+  --gutter: 24px;                   /* left/right screen edge */
+  --nav-top: 33px;                  /* nav row distance from the top */
+  --nav-height: 52px;
+
+  /* ---- states ---- */
+  --disabled-opacity: 0.4;          /* unusable device / group */
+}

@@ -1,0 +1,43 @@
+/* HQ / Fleet tile, from the mockup's .tile (130×130). */
+.tile {
+  width: 130px;
+  height: 130px;
+  padding: 10px;
+  border: 0;               /* it's a <button>: remove the browser's button look */
+  appearance: none;
+  cursor: pointer;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  text-align: center;
+  transition: transform 80ms ease-out;
+}
+
+.tile:active:not(:disabled) {
+  transform: scale(0.96);  /* press feedback (no hover on touch) */
+}
+
+.icon {
+  flex: none;
+}
+
+.name {
+  font-size: 11px;
+  line-height: 1.35;
+  text-wrap: balance;      /* "Living Room / Lamp" splits evenly, like the mockup */
+}
+
+.status {
+  font-size: 9px;
+  color: var(--ink-2);
+}
+
+/* Unusable (adapter offline or device unreachable): visible but clearly dead. */
+.tile:disabled {
+  opacity: var(--disabled-opacity);
+  filter: grayscale(1);
+  cursor: default;
+}

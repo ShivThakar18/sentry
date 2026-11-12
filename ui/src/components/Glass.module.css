@@ -1,0 +1,70 @@
+/*
+ * The "liquid glass" look, copied from the mockup's .glass / .glass.on rules.
+ *
+ * This is a CSS Module (the .module.css name tells Vite). Class names here get
+ * a unique suffix at build time, so `.on` here can never clash with an `.on`
+ * in another file. In TypeScript you import them: styles.glass, styles.on.
+ */
+.glass {
+  position: relative;
+  background: var(--off);
+
+  /* A component can change the corner without fighting this rule, by setting
+     the variable instead: `--glass-radius: 17px`. Overriding border-radius
+     directly would depend on which CSS file loads last. */
+  border-radius: var(--glass-radius, var(--radius));
+
+  box-shadow:
+    0 0 12px rgba(0, 0, 0, 0.15),
+    0 8px 24px rgba(0, 0, 0, 0.35),
+    inset 2px 2px 3px rgba(255, 255, 255, 0.1),
+    inset -1px -1px 2px rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+/* The thin bright rim: a gradient that's masked so only a 1px border shows. */
+.glass::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  pointer-events: none;
+  background: conic-gradient(
+    from 90deg,
+    rgba(140, 200, 255, 0.2),
+    rgba(140, 200, 255, 0.42) 43deg,
+    rgba(255, 255, 255, 0) 133deg,
+    rgba(140, 200, 255, 0.42) 223deg,
+    rgba(255, 255, 255, 0) 313deg,
+    rgba(140, 200, 255, 0.2)
+  );
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#000 0 0) content-box exclude,
+    linear-gradient(#000 0 0);
+}
+
+/* The specular sheen across the top. */
+.glass::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(170deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0) 45%);
+}
+
+/* Lit: blue fill + glow. Used for "device on", "active tab", "active protocol". */
+.glass.on {
+  background: var(--on);
+  box-shadow:
+    0 0 18px var(--on-glow),
+    0 8px 24px rgba(0, 0, 0, 0.35),
+    inset 2px 2px 3px rgba(255, 255, 255, 0.18),
+    inset -1px -1px 2px rgba(255, 255, 255, 0.08);
+}

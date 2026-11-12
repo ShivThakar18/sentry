@@ -1,0 +1,23 @@
+/* Nav pill, from the mockup's .pill (94×52, 17px corners). */
+.pill {
+  --glass-radius: 17px; /* read by .glass (see Glass.module.css) */
+
+  width: 94px;
+  height: var(--nav-height);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+/* Two-line labels ("Standing / Orders") are one size smaller. */
+.small {
+  font-size: 11px;
+}
+
+/* Touch feedback: there's no hover on a touch screen, so react to the press. */
+.pill:active {
+  transform: scale(0.97);
+}

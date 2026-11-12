@@ -1,0 +1,33 @@
+/* The whole screen. Every screen positions its content inside this box. */
+.screen {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+}
+
+/* Screens get the whole page (HQ's tiles start at top: 22px, beside the nav). */
+.main {
+  position: absolute;
+  inset: 0;
+}
+
+/* The nav row: same spot on every screen (mockup: left 24, top 33).
+   pointer-events: none on the empty part of the row, so it doesn't block taps
+   on whatever is underneath; the nav itself turns them back on. */
+.header {
+  position: absolute;
+  left: var(--gutter);
+  right: var(--gutter);
+  top: var(--nav-top);
+  height: var(--nav-height);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  pointer-events: none;
+}
+
+.header > * {
+  pointer-events: auto;
+}

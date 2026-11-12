@@ -1,0 +1,9 @@
+/* The 2-column tile grid on the right of HQ (mockup: .hq-tiles). */
+.tiles {
+  position: absolute;
+  left: 486px;
+  top: 22px;
+  display: grid;
+  grid-template-columns: 130px 130px;
+  gap: 24px 26px;
+}
