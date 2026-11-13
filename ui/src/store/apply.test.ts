@@ -45,7 +45,8 @@ describe("device (rule 2: full replace)", () => {
   });
 
   it("replaces, never merges: a field missing from the update is gone", () => {
-    const { brightness: _dropped, ...stateWithoutBrightness } = lamp.state;
+    const stateWithoutBrightness = { ...lamp.state };
+    delete stateWithoutBrightness.brightness;
     const s = apply(loaded(), { type: "device", device: { ...lamp, state: stateWithoutBrightness } });
     expect(s.devices["hue-3"].state.brightness).toBeUndefined();
   });

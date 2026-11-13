@@ -9,7 +9,7 @@ import { useEffect, useState } from "react";
 import { IconPlugConnectedX } from "@tabler/icons-react";
 import { TIMING } from "../api/contract";
 import { useCore } from "../store/store";
-import { glassClass } from "./glass";
+import { glassClass } from "./glassClass";
 import styles from "./ConnectionBadge.module.css";
 
 export function ConnectionBadge() {

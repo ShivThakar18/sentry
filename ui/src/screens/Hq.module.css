@@ -1,9 +1,62 @@
-/* The 2-column tile grid on the right of HQ (mockup: .hq-tiles). */
+/*
+ * HQ layout, from mockups/sentry-ui.html (.brand .clock .date .wx .hq-tiles).
+ *
+ * The mockup is 800×480; the real screen is 800×450 (see 6a). Every position
+ * here is the mockup's, moved up to fit:
+ *   - left column: up 10 px, climate card 8 px shorter (the brand keeps a
+ *     12 px gap below the nav row)
+ *   - tiles: start at 14 px (was 22) with 16 px row gaps (was 24),
+ *     so 3 rows end at 14 + 3×130 + 2×16 = 436 px
+ */
+
+.brand {
+  position: absolute;
+  left: 236px;
+  top: 97px;
+  font-size: 19px;
+  letter-spacing: 3px;
+}
+
+.clock {
+  position: absolute;
+  left: 44px;
+  top: 114px;
+  font-size: 92px;
+  letter-spacing: -1px;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums; /* digits all the same width: no wobble at 11:11 */
+}
+
+.date {
+  position: absolute;
+  left: 52px;
+  top: 222px;
+  font-size: 19px;
+}
+
+.climate {
+  position: absolute;
+  left: 40px;
+  top: 260px;
+  width: 378px;
+  height: 158px;
+  padding: 20px 24px;
+  display: grid;
+  grid-template-columns: 1fr 60px 110px;
+  align-items: center;
+  row-gap: 18px;
+  font-size: 19px;
+}
+
+.temp {
+  text-align: right;
+}
+
 .tiles {
   position: absolute;
   left: 486px;
-  top: 22px;
+  top: 14px;
   display: grid;
   grid-template-columns: 130px 130px;
-  gap: 24px 26px;
+  gap: 16px 26px;
 }

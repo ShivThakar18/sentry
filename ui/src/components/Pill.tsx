@@ -6,7 +6,7 @@
  */
 import type { ReactNode } from "react";
 import { NavLink } from "react-router-dom";
-import { glassClass } from "./glass";
+import { glassClass } from "./glassClass";
 import styles from "./Pill.module.css";
 
 interface PillProps {

@@ -6,7 +6,7 @@
  *   <Glass on>…</Glass>                       // lit
  */
 import type { ComponentProps } from "react";
-import { glassClass } from "./glass";
+import { glassClass } from "./glassClass";
 
 // ComponentProps<"div"> = every prop a normal <div> accepts (style, onClick,
 // children, …). We add `on` and pass the rest straight through with {...rest}.

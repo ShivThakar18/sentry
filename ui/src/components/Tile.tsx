@@ -10,7 +10,7 @@
  * protocols too.
  */
 import type { Icon } from "@tabler/icons-react";
-import { glassClass } from "./glass";
+import { glassClass } from "./glassClass";
 import styles from "./Tile.module.css";
 
 interface TileProps {

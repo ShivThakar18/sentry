@@ -1,5 +1,5 @@
 /**
- * glass.ts: one helper that builds the glass class list.
+ * glassClass.ts: one helper that builds the glass class list.
  *
  * Why a helper and not only the <Glass> component? A Pill is a router link
  * (<NavLink>) and a Tile is a <button>. Neither can be a <div>, but both need
