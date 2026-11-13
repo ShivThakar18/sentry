@@ -12,6 +12,11 @@ import "@fontsource/krona-one";
 import "./theme/tokens.css";
 import "./index.css";
 import App from "./App";
+import { startCoreConnection } from "./store/store";
+
+// Open the WebSocket to the core once, before the first render (see store.ts
+// for why this isn't in a useEffect).
+startCoreConnection();
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>

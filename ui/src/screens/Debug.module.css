@@ -1,0 +1,24 @@
+/* Plain and small on purpose: this is a tool, not part of the design. */
+.debug {
+  position: absolute;
+  left: var(--gutter);
+  right: var(--gutter);
+  top: calc(var(--nav-top) + var(--nav-height) + 12px);
+  bottom: 8px;
+  overflow: auto;
+  font-family: ui-monospace, monospace;
+  font-size: 11px;
+  user-select: text; /* so you can copy from it */
+}
+
+.debug p {
+  margin: 0 0 8px;
+}
+
+.debug td {
+  padding: 2px 12px 2px 0;
+}
+
+.dead {
+  opacity: var(--disabled-opacity);
+}

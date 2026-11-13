@@ -7,7 +7,9 @@
  * you switch tabs.
  */
 import { Navigate, Outlet, Route, Routes } from "react-router-dom";
+import { ConnectionBadge } from "./components/ConnectionBadge";
 import { NavBar } from "./components/NavBar";
+import { Debug } from "./screens/Debug";
 import { Hq } from "./screens/Hq";
 import { Placeholder } from "./screens/Placeholder";
 import styles from "./App.module.css";
@@ -24,6 +26,11 @@ function Layout() {
       <header className={styles.header}>
         <NavBar />
       </header>
+      {/* Floats bottom-centre over every screen; only visible while the
+          connection to the core is down (6e). */}
+      <div className={styles.status}>
+        <ConnectionBadge />
+      </div>
     </div>
   );
 }
@@ -39,6 +46,7 @@ export default function App() {
         <Route path="protocols/:id" element={<Placeholder title="Protocols / Edit" />} />
         <Route path="orders" element={<Placeholder title="Standing Orders" />} />
         <Route path="orders/:id" element={<Placeholder title="Standing Orders / Edit" />} />
+        <Route path="debug" element={<Debug />} />
         {/* Anything else (a typo, an old link) → back to HQ. `replace` so
             the bad URL doesn't stay in history. */}
         <Route path="*" element={<Navigate to="/" replace />} />

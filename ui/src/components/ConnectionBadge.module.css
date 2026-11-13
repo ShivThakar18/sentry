@@ -1,0 +1,10 @@
+.badge {
+  --glass-radius: 15px;
+  height: 44px;
+  padding: 0 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--ink-2);
+}

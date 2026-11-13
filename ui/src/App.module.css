@@ -31,3 +31,12 @@
 .header > * {
   pointer-events: auto;
 }
+
+/* The connection badge: bottom centre, above everything. */
+.status {
+  position: absolute;
+  left: 50%;
+  bottom: 12px;
+  transform: translateX(-50%);
+  z-index: 10;
+}
